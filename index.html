@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="vercel-deployment-toolbar" content="disabled">
+  <title>Proof of Pint ☘️</title>
+  <meta name="fc:frame" content='{"version":"next","imageUrl":"https://proof-of-pint.vercel.app/frame.png","button":{"title":"Check-in Pint","action":{"type":"launch_frame","name":"Proof of Pint","url":"https://proof-of-pint.vercel.app","splashImageUrl":"https://proof-of-pint.vercel.app/craic.png","splashBackgroundColor":"#16a34a"}}}' />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green-deep:  #0d3d20; --green-mid: #1a6b3a; --green-light: #52C47C;
+      --gold: #FFD700; --white: #ffffff; --off-white: #f7f7f5;
+      --gray-light: #f0f0ec; --gray-mid: #d0d0c8; --gray-text: #888880;
+      --text-dark: #111110; --danger: #dc2626;
+      --font-serif: 'DM Serif Display', Georgia, serif;
+      --font-sans:  'DM Sans', -apple-system, sans-serif;
+      --radius-md: 14px; --radius-lg: 20px; --radius-full: 9999px;
+    }
+    html, body { height: 100%; font-family: var(--font-sans); background: var(--off-white); color: var(--text-dark); overflow-x: hidden; }
+
+    .screen { display: none; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 16px 20px; font-family: var(--font-sans); font-size: 15px; font-weight: 600; border: none; border-radius: var(--radius-full); cursor: pointer; transition: transform 0.12s; text-decoration: none; }
+    .btn:active { transform: scale(0.97); }
+    .btn-gold  { background: var(--gold); color: var(--green-deep); }
+    .btn-dark  { background: var(--green-deep); color: var(--white); }
+    .btn-ghost { background: transparent; color: var(--gray-text); border: 1.5px solid var(--gray-mid); }
+    .btn-black { background: #000; color: var(--white); }
+    .btn-stack { display: flex; flex-direction: column; gap: 10px; }
+    .mt-auto { margin-top: auto; }
+    .hidden { display: none !important; }
+
+    .screen-header { background: var(--green-deep); padding: 20px 20px 18px; }
+    .screen-header-title { font-family: var(--font-serif); font-size: 22px; color: var(--white); margin-bottom: 3px; }
+    .screen-header-sub { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .step-dots { display: flex; gap: 6px; margin-bottom: 14px; }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+    .step-dot.on { background: var(--gold); }
+    .screen-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-text); margin-bottom: 12px; }
+
+    /* ── LANDING ── */
+    #screen-landing { background: var(--off-white); }
+    .landing-hero { position: relative; overflow: hidden; background: #060a0f; padding: 0 0 24px; display: flex; flex-direction: column; align-items: center; }
+
+    /* Globe — slightly smaller, no overflow */
+    #globeMap { width: 100%; height: 220px; background: #060a0f; }
+    .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+
+    .live-pill { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-full); padding: 6px 14px; margin: 12px 0 16px; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: livepulse 1.6s ease-in-out infinite; }
+    @keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.85)} }
+    .live-pill span { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 500; }
+    .hero-headline { font-family: var(--font-serif); font-size: 32px; line-height: 1.15; color: var(--white); text-align: center; margin-bottom: 8px; padding: 0 24px; }
+    .hero-sub { font-size: 14px; color: rgba(255,255,255,0.6); text-align: center; margin-bottom: 20px; }
+    .hero-btns { width: 100%; display: flex; flex-direction: column; gap: 10px; padding: 0 20px; }
+    .hero-btn-sec { width: 100%; padding: 14px 20px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-full); font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font-sans); }
+    .landing-body { padding: 24px 20px; flex: 1; }
+    .feed-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--gray-light); }
+    .feed-left { display: flex; align-items: center; gap: 10px; }
+    .feed-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+    .feed-pub  { font-size: 11px; color: var(--gray-text); margin-top: 1px; }
+    .feed-time { font-size: 11px; color: var(--gray-mid); }
+    .landing-bottom { padding: 20px 20px 32px; }
+
+    /* ── FIND A PUB ── */
+    #screen-findpub { background: var(--off-white); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--gray-light); border-top-color: var(--green-mid); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .findpub-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 0; }
+    .findpub-loading p { font-size: 13px; color: var(--gray-text); }
+    .findpub-error { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 0; text-align: center; }
+    .findpub-error p { font-size: 13px; color: var(--gray-text); line-height: 1.6; }
+    .pub-result { background: var(--white); border: 1.5px solid var(--gray-light); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px; }
+    .pub-result.verified { border-color: rgba(26,107,58,0.35); }
+    .pub-result-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+    .pub-result-name { font-size: 14px; font-weight: 700; color: var(--text-dark); flex: 1; }
+    .pub-result-dist { font-size: 11px; color: var(--gray-text); white-space: nowrap; }
+    .pub-result-addr { font-size: 11px; color: var(--gray-text); margin-bottom: 8px; }
+    .pub-result-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .pub-result-rating { font-size: 11px; color: #f59e0b; }
+    .pub-open   { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: rgba(82,196,124,0.15); color: var(--green-mid); }
+    .pub-closed { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: rgba(220,38,38,0.12); color: var(--danger); }
+    .pub-verified-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: var(--green-mid); background: rgba(26,107,58,0.08); border: 1px solid rgba(26,107,58,0.2); padding: 3px 8px; border-radius: 10px; margin-bottom: 10px; }
+    .pub-result-actions { display: flex; gap: 8px; }
+    .pub-dir-btn { flex: 1; padding: 9px; background: var(--green-deep); color: var(--white); font-family: var(--font-sans); font-weight: 600; font-size: 12px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; display: block; }
+    .pub-in-btn  { flex: 1; padding: 9px; background: transparent; color: var(--green-mid); font-family: var(--font-sans); font-weight: 600; font-size: 12px; border: 1.5px solid var(--green-mid); border-radius: 8px; cursor: pointer; text-align: center; }
+
+    /* ── CAMERA ── */
+    #screen-camera { background: #000; }
+    .camera-header { background: var(--green-deep); padding: 20px 20px 16px; }
+    .camera-viewfinder { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+    #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Frame centred vertically */
+    .viewfinder-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .viewfinder-frame { width: 220px; height: 220px; position: relative; }
+    .viewfinder-frame::before, .viewfinder-frame::after, .vf-br::before, .vf-br::after { content: ''; position: absolute; width: 24px; height: 24px; border-color: var(--gold); border-style: solid; }
+    .viewfinder-frame::before { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .viewfinder-frame::after  { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .vf-br::before { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .vf-br::after  { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+    .camera-hint-text { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; font-size: 13px; color: rgba(255,255,255,0.5); }
+    .camera-footer { background: #000; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    #canvas { display: none; }
+
+    /* ── VERIFYING ── */
+    #screen-verifying { background: var(--off-white); }
+    .pint-preview { height: 160px; background: var(--green-deep); display: flex; align-items: center; justify-content: center; font-size: 64px; }
+    .verify-steps { display: flex; flex-direction: column; gap: 10px; padding: 20px; flex: 1; }
+    .vstep { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--white); border-radius: var(--radius-md); border: 1px solid var(--gray-light); }
+    .vstep-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .vstep-icon.done    { background: #d1fae5; color: #065f46; }
+    .vstep-icon.running { background: #fef3c7; color: #92400e; animation: spin 1s linear infinite; }
+    .vstep-icon.waiting { background: var(--gray-light); color: var(--gray-mid); }
+    .vstep-label { font-size: 13px; color: var(--text-dark); font-weight: 500; }
+    .vstep-sub   { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
+
+    /* ── REWARD ── */
+    #screen-reward { background: var(--off-white); }
+    .reward-hero { background: var(--green-deep); padding: 28px 24px 24px; text-align: center; }
+    .reward-title { font-family: var(--font-serif); font-size: 22px; color: var(--white); margin-bottom: 6px; }
+    .reward-pub-name { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .reward-amount-card { margin: 20px 20px 0; background: var(--green-deep); border-radius: var(--radius-lg); padding: 20px; text-align: center; }
+    .reward-num   { font-family: var(--font-serif); font-size: 52px; color: var(--gold); line-height: 1; }
+    .reward-token { font-size: 14px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+    .wallet-options { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .wallet-section-label { font-size: 13px; color: var(--gray-text); text-align: center; margin-bottom: 4px; }
+    .wallet-opt { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--white); border-radius: var(--radius-md); border: 1.5px solid var(--gray-light); cursor: pointer; transition: border-color 0.15s; }
+    .wallet-opt:hover { border-color: var(--green-mid); }
+    .wallet-opt-icon  { width: 38px; height: 38px; border-radius: 8px; background: var(--gray-light); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .wallet-opt-title { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+    .wallet-opt-sub   { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+    .tx-link-wrap { text-align: center; padding: 0 20px 16px; }
+    .tx-link { color: #0052FF; text-decoration: none; font-size: 13px; font-weight: 600; }
+
+    /* ── EMAIL ── */
+    #screen-email { background: var(--off-white); }
+    .email-body { padding: 24px 20px; flex: 1; display: flex; flex-direction: column; }
+    .email-desc { font-size: 14px; color: var(--gray-text); line-height: 1.65; margin-bottom: 20px; }
+    .email-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--gray-mid); border-radius: var(--radius-md); font-size: 15px; color: var(--text-dark); background: var(--white); font-family: var(--font-sans); margin-bottom: 12px; }
+    .email-input:focus { outline: none; border-color: var(--green-mid); }
+
+    /* ── SHARE ── */
+    #screen-share { background: var(--off-white); }
+    .share-reward-bar { background: var(--green-deep); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .share-reward-label  { font-size: 11px; color: rgba(255,255,255,0.55); margin-bottom: 3px; }
+    .share-reward-amount { font-size: 22px; font-weight: 700; color: var(--gold); font-family: var(--font-serif); }
+    .share-reward-pub    { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .share-pint-icon     { font-size: 36px; }
+    .share-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .share-post-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-text); margin-bottom: 8px; }
+    #shareText { width: 100%; padding: 14px; border: 1.5px solid var(--gray-mid); border-radius: var(--radius-md); font-size: 13px; line-height: 1.7; color: var(--text-dark); background: var(--white); font-family: var(--font-sans); resize: none; margin-bottom: 6px; }
+    #shareText:focus { outline: none; border-color: var(--green-mid); }
+    .char-count { font-size: 11px; color: var(--gray-text); text-align: right; margin-bottom: 14px; }
+    .share-toggles { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .share-toggle-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-dark); }
+    .share-toggle-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green-mid); }
+    .share-btns { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── CONFIRM ── */
+    #screen-confirm { background: var(--off-white); }
+    .confirm-hero { background: var(--green-deep); padding: 24px 20px; text-align: center; }
+    .confirm-tick { width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 12px; }
+    .confirm-title { font-family: var(--font-serif); font-size: 22px; color: var(--white); margin-bottom: 4px; }
+    .confirm-sub   { font-size: 13px; color: rgba(255,255,255,0.6); }
+    .confirm-stats { display: flex; margin: 20px 20px 0; background: var(--white); border-radius: var(--radius-md); border: 1px solid var(--gray-light); overflow: hidden; }
+    .stat-block { flex: 1; padding: 14px 10px; text-align: center; }
+    .stat-block + .stat-block { border-left: 1px solid var(--gray-light); }
+    .stat-num { font-family: var(--font-serif); font-size: 22px; color: var(--text-dark); }
+    .stat-lbl { font-size: 11px; color: var(--gray-text); margin-top: 2px; }
+    .milestone-card { margin: 12px 20px 0; background: var(--white); border-radius: var(--radius-md); border: 1px solid var(--gray-light); padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+    .milestone-text { font-size: 13px; color: var(--text-dark); line-height: 1.5; }
+    .milestone-text strong { color: var(--green-mid); }
+    .post-preview-card { margin: 12px 20px 0; background: var(--white); border-radius: var(--radius-md); border: 1px solid var(--gray-light); padding: 12px 14px; font-size: 13px; color: var(--text-dark); line-height: 1.7; }
+    .post-preview-tag { color: var(--green-mid); }
+    .confirm-body { padding: 16px 20px 32px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── LEADERBOARD ── */
+    #screen-leaderboard { background: var(--off-white); }
+    .lb-header { background: var(--green-deep); padding: 20px 20px 0; }
+    .lb-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .lb-header-title { font-family: var(--font-serif); font-size: 22px; color: var(--white); }
+    .lb-tabs { display: flex; gap: 6px; }
+    .lb-tab { padding: 5px 13px; border-radius: var(--radius-full); font-size: 12px; font-weight: 500; cursor: pointer; border: none; font-family: var(--font-sans); background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); }
+    .lb-tab.active { background: var(--white); color: var(--green-deep); }
+    .lb-podium { display: flex; align-items: flex-end; justify-content: center; gap: 12px; padding: 16px 0 0; }
+    .podium-item { text-align: center; }
+    .podium-avatar { border-radius: 50%; margin: 0 auto 5px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .podium-name { font-size: 10px; color: rgba(255,255,255,0.8); margin-bottom: 5px; }
+    .podium-bar  { border-radius: 6px 6px 0 0; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .podium-1 .podium-avatar { width: 52px; height: 52px; background: var(--gold); }
+    .podium-1 .podium-name   { color: var(--gold); font-weight: 600; }
+    .podium-1 .podium-bar    { width: 64px; height: 56px; background: rgba(255,215,0,0.2); }
+    .podium-2 .podium-avatar { width: 44px; height: 44px; }
+    .podium-2 .podium-bar    { width: 56px; height: 40px; background: rgba(255,255,255,0.1); }
+    .podium-3 .podium-avatar { width: 44px; height: 44px; }
+    .podium-3 .podium-bar    { width: 56px; height: 28px; background: rgba(255,255,255,0.1); }
+    .lb-list { flex: 1; overflow-y: auto; }
+    .lb-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 20px; border-bottom: 1px solid var(--gray-light); }
+    .lb-row-left { display: flex; align-items: center; gap: 10px; }
+    .lb-rank { font-size: 12px; color: var(--gray-text); width: 22px; }
+    .lb-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+    .lb-pints { font-size: 11px; color: var(--gray-text); }
+    .lb-craic { font-size: 13px; font-weight: 600; color: var(--green-mid); }
+    .lb-you   { padding: 12px 20px; background: var(--gray-light); border-top: 1px solid var(--gray-mid); display: flex; align-items: center; justify-content: space-between; }
+    .lb-you-left { display: flex; align-items: center; gap: 10px; }
+    .lb-you-badge { width: 30px; height: 30px; border-radius: 50%; background: var(--green-deep); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .lb-footer { padding: 16px 20px 32px; }
+
+    /* ── PUB SELECTOR ── */
+    #pubSelector { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: flex-end; justify-content: center; }
+    #pubSelector.active { display: flex; }
+    #pubSelectorSheet { background: var(--white); border-radius: 22px 22px 0 0; width: 100%; max-width: 480px; padding: 24px 20px 40px; animation: slideUp 0.28s ease; max-height: 75vh; overflow-y: auto; }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--gray-mid); margin: 0 auto 16px; }
+    .sheet-title { font-size: 17px; font-weight: 700; color: var(--text-dark); margin-bottom: 4px; }
+    .sheet-sub   { font-size: 13px; color: var(--gray-text); margin-bottom: 18px; }
+    .pub-option { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; margin-bottom: 10px; background: var(--gray-light); border: 2px solid transparent; border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s; text-align: left; }
+    .pub-option:hover, .pub-option:active { border-color: var(--green-mid); background: #f0fdf4; }
+    .pub-option-info    { flex: 1; }
+    .pub-option-name    { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 2px; }
+    .pub-option-address { font-size: 12px; color: var(--gray-text); }
+    .pub-option-dist    { font-size: 12px; color: var(--green-mid); font-weight: 600; margin-left: 12px; white-space: nowrap; }
+    .pub-option-arrow   { font-size: 16px; color: var(--green-mid); margin-left: 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- SCREEN 1 — LANDING -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-hero">
+      <div id="globeMap"></div>
+      <div class="live-pill"><div class="live-dot"></div><span id="liveCount">Loading...</span></div>
+      <h1 class="hero-headline">Your pint.<br>Verified on&#x2011;chain.</h1>
+      <p class="hero-sub">Snap your pint in any Irish pub. Earn $CRAIC.</p>
+      <div class="hero-btns">
+        <button class="btn btn-gold" onclick="showScreen('camera'); initCamera();">Verify a Pint →</button>
+        <button class="hero-btn-sec" onclick="showScreen('findpub'); loadFindPub();">📍 Find an Irish pub near me</button>
+      </div>
+    </div>
+    <div class="landing-body">
+      <p class="section-label">Latest verified pints</p>
+      <div id="liveFeed"><div class="feed-item"><div class="feed-left"><span style="font-size:18px">☘️</span><div><div class="feed-name">Loading...</div></div></div></div></div>
+    </div>
+    <div class="landing-bottom">
+      <button class="btn btn-dark" onclick="showScreen('camera'); initCamera();">Verify a Pint →</button>
+      <p style="font-size:12px;color:var(--gray-text);text-align:center;margin-top:10px;">No crypto experience needed. Just find a pub.</p>
+    </div>
+  </div>
+
+  <!-- SCREEN 2 — FIND A PUB -->
+  <div id="screen-findpub" class="screen">
+    <div class="screen-header">
+      <div class="screen-header-title">Find an Irish pub</div>
+      <div class="screen-header-sub" id="findPubSubtitle">Finding nearest Irish pubs...</div>
+    </div>
+    <div class="screen-body">
+      <div id="findPubLoading" class="findpub-loading"><div class="spinner"></div><p>Searching near you...</p></div>
+      <div id="findPubError" class="findpub-error hidden"><p id="findPubErrorMsg">Couldn't find pubs near you. Make sure location access is enabled.</p><button class="btn btn-dark" onclick="loadFindPub()" style="width:auto;padding:10px 24px;">Try again</button></div>
+      <div id="findPubList" class="hidden"></div>
+      <div class="btn-stack mt-auto" style="padding-top:16px;"><button class="btn btn-ghost" onclick="showScreen('landing')">← Back</button></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3 — CAMERA -->
+  <div id="screen-camera" class="screen">
+    <div class="camera-header">
+      <div class="step-dots"><div class="step-dot on"></div><div class="step-dot"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+      <div class="screen-header-title">Take your photo</div>
+      <div class="screen-header-sub">Point at your pint in an Irish pub</div>
+    </div>
+    <div class="camera-viewfinder">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="viewfinder-overlay">
+        <div class="viewfinder-frame"><div class="vf-br"></div></div>
+      </div>
+      <div class="camera-hint-text">Frame your pint</div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div class="camera-footer">
+      <button class="btn btn-gold" id="snapBtn">📸 Take Photo</button>
+      <button class="btn btn-ghost" style="color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.15);" onclick="stopCamera(); showScreen('landing');">← Back</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4 — VERIFYING -->
+  <div id="screen-verifying" class="screen">
+    <div class="camera-header">
+      <div class="step-dots"><div class="step-dot on"></div><div class="step-dot on"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+      <div class="screen-header-title">Verifying your pint</div>
+      <div class="screen-header-sub">Give us just a second...</div>
+    </div>
+    <div class="pint-preview">🍺</div>
+    <div class="verify-steps">
+      <div class="vstep"><div class="vstep-icon done">✓</div><div><div class="vstep-label">Photo received</div></div></div>
+      <div class="vstep"><div class="vstep-icon waiting" id="vstep2-icon">·</div><div><div class="vstep-label" id="vstep2-label" style="color:var(--gray-text)">Checking it's a real pint</div><div class="vstep-sub">Vision AI running...</div></div></div>
+      <div class="vstep"><div class="vstep-icon waiting" id="vstep3-icon">·</div><div><div class="vstep-label" id="vstep3-label" style="color:var(--gray-text)">Confirming pub location</div></div></div>
+      <div class="vstep"><div class="vstep-icon waiting" id="vstep4-icon">·</div><div><div class="vstep-label" id="vstep4-label" style="color:var(--gray-text)">Calculating $CRAIC</div></div></div>
+    </div>
+    <div id="verifyError" class="hidden" style="padding:0 20px 20px;">
+      <div id="verifyErrorMsg" style="color:var(--danger);font-size:14px;text-align:center;margin-bottom:12px;"></div>
+      <button class="btn btn-ghost" onclick="showScreen('camera'); initCamera();">Try again</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 5 — REWARD -->
+  <div id="screen-reward" class="screen">
+    <div class="reward-hero">
+      <div style="font-size:40px;margin-bottom:12px;">🎉</div>
+      <div class="reward-title">Pint confirmed!</div>
+      <div class="reward-pub-name" id="rewardPubName">Irish pub</div>
+    </div>
+    <div class="reward-amount-card">
+      <div class="reward-num" id="rewardAmount">5,000</div>
+      <div class="reward-token">$CRAIC earned</div>
+    </div>
+    <div class="wallet-options">
+      <div class="wallet-section-label">Where do we send your $CRAIC?</div>
+      <div class="wallet-opt" onclick="handleConnectWallet()"><div class="wallet-opt-icon">👛</div><div><div class="wallet-opt-title">Connect my wallet</div><div class="wallet-opt-sub">MetaMask, Coinbase, Rainbow...</div></div></div>
+      <div class="wallet-opt" onclick="handleCreateWallet()"><div class="wallet-opt-icon">✨</div><div><div class="wallet-opt-title">Create a wallet</div><div class="wallet-opt-sub">Takes 30 seconds — we'll guide you</div></div></div>
+      <div class="wallet-opt" onclick="showScreen('email')"><div class="wallet-opt-icon">📧</div><div><div class="wallet-opt-title">Email it to me</div><div class="wallet-opt-sub">I'll set up a wallet later</div></div></div>
+    </div>
+    <div id="txLinkContainer" class="hidden tx-link-wrap"><a id="txLink" href="#" target="_blank" class="tx-link">View $CRAIC on BaseScan 🔗</a></div>
+  </div>
+
+  <!-- SCREEN 6 — EMAIL -->
+  <div id="screen-email" class="screen">
+    <div class="screen-header">
+      <div class="step-dots"><div class="step-dot on"></div><div class="step-dot on"></div><div class="step-dot on"></div><div class="step-dot on"></div></div>
+      <div class="screen-header-title">Save your $CRAIC</div>
+      <div class="screen-header-sub">We'll hold it until you're ready</div>
+    </div>
+    <div class="email-body">
+      <p class="email-desc">Your $CRAIC is safe with us. Drop your email and we'll send a claim link whenever you're ready to set up a wallet.</p>
+      <input class="email-input" type="email" id="emailInput" placeholder="your@email.com" autocomplete="email" />
+      <div class="btn-stack mt-auto">
+        <button class="btn btn-gold" onclick="handleEmailSave()">Save my $CRAIC →</button>
+        <button class="btn btn-ghost" onclick="showScreen('reward')">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 7 — SHARE -->
+  <div id="screen-share" class="screen">
+    <div class="share-reward-bar">
+      <div>
+        <div class="share-reward-label">Pint verified</div>
+        <div class="share-reward-amount">+<span id="shareAmount">5,000</span> $CRAIC</div>
+        <div class="share-reward-pub" id="sharePubName"></div>
+      </div>
+      <div class="share-pint-icon">🍺</div>
+    </div>
+    <div class="share-body">
+      <div class="share-post-label">Your post</div>
+      <textarea id="shareText" rows="4"></textarea>
+      <div class="char-count"><span id="charCount">0</span> / 280</div>
+      <div class="share-toggles">
+        <div class="share-toggle-row"><span>Photo of your pint</span><input type="checkbox" id="inclPhoto" checked></div>
+        <div class="share-toggle-row"><span>Pub location</span><input type="checkbox" id="inclLocation" checked></div>
+        <div class="share-toggle-row"><span>$CRAIC earned</span><input type="checkbox" id="inclCraic" checked></div>
+      </div>
+      <div class="share-btns">
+        <button class="btn btn-black" onclick="handlePostToX()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          Post to X
+        </button>
+        <button class="btn btn-ghost" onclick="showScreen('confirm')">Skip — just claim my $CRAIC</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 8 — CONFIRM -->
+  <div id="screen-confirm" class="screen">
+    <div class="confirm-hero">
+      <div class="confirm-tick">✓</div>
+      <div class="confirm-title">Posted &amp; claimed</div>
+      <div class="confirm-sub">Your pint is on the board</div>
+    </div>
+    <div class="confirm-stats">
+      <div class="stat-block"><div class="stat-num" id="confirmCraic">5,000</div><div class="stat-lbl">$CRAIC earned</div></div>
+      <div class="stat-block"><div class="stat-num">1</div><div class="stat-lbl">pints verified</div></div>
+      <div class="stat-block"><div class="stat-num">#—</div><div class="stat-lbl">leaderboard</div></div>
+    </div>
+    <div class="milestone-card">
+      <div style="font-size:18px;flex-shrink:0;margin-top:1px;">🏆</div>
+      <div class="milestone-text">Verify <strong>4 more pints</strong> to unlock the <strong>Regular</strong> badge</div>
+    </div>
+    <div class="post-preview-card" id="confirmPostPreview"></div>
+    <div class="confirm-body">
+      <button class="btn btn-dark" onclick="showScreen('leaderboard')">See the leaderboard</button>
+      <button class="btn btn-ghost" onclick="showScreen('camera'); initCamera();">Verify another pint</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 9 — LEADERBOARD -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="lb-header">
+      <div class="lb-header-top">
+        <div class="lb-header-title">Leaderboard</div>
+        <div class="lb-tabs">
+          <button class="lb-tab active" id="lt-global" onclick="switchLb('global')">Global</button>
+          <button class="lb-tab" id="lt-county" onclick="switchLb('county')">County</button>
+          <button class="lb-tab" id="lt-friends" onclick="switchLb('friends')">Friends</button>
+        </div>
+      </div>
+      <div class="lb-podium">
+        <div class="podium-item podium-2"><div class="podium-avatar" style="width:44px;height:44px;">🧑</div><div class="podium-name">—</div><div class="podium-bar">🥈</div></div>
+        <div class="podium-item podium-1"><div class="podium-avatar">👑</div><div class="podium-name">—</div><div class="podium-bar">🥇</div></div>
+        <div class="podium-item podium-3"><div class="podium-avatar" style="width:44px;height:44px;">👩</div><div class="podium-name">—</div><div class="podium-bar">🥉</div></div>
+      </div>
+    </div>
+    <div class="lb-list" id="lbList"></div>
+    <div class="lb-you"><div class="lb-you-left"><span class="lb-rank">#—</span><div class="lb-you-badge">🧑</div><div><div class="lb-name">You</div></div></div><div class="lb-craic">0 $CRAIC</div></div>
+    <div class="lb-footer"><button class="btn btn-gold" onclick="showScreen('camera'); initCamera();">Verify another pint</button></div>
+  </div>
+
+  <!-- PUB SELECTOR -->
+  <div id="pubSelector">
+    <div id="pubSelectorSheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Which pub are you in? 🍺</div>
+      <div class="sheet-sub">We found nearby pubs — tap yours to claim your $CRAIC</div>
+      <div id="pubList"></div>
+      <button class="btn btn-ghost" id="pubSelectorCancel" style="margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+  'use strict';
+
+  // ── STATE ──────────────────────────────────────────────
+  let userLocation=null, stream=null, pendingVerification=null, verificationResult=null, pintsData=[];
+  function getSessionId(){let s=sessionStorage.getItem('pop_session');if(!s){s='web_'+Math.random().toString(36).slice(2,11);sessionStorage.setItem('pop_session',s);}return s;}
+  let userId=sessionStorage.getItem('pop_wallet')||getSessionId();
+
+  // ── SCREEN ROUTER ──────────────────────────────────────
+  function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');window.scrollTo(0,0);}
+
+  // ── MAPBOX GLOBE ───────────────────────────────────────
+  // Token fetched securely from /api/config — never hardcoded
+  async function initGlobe() {
+    try {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      if (!cfg.mapboxToken) { console.warn('No Mapbox token returned'); return; }
+      mapboxgl.accessToken = cfg.mapboxToken;
+    } catch (e) { console.error('Config fetch failed:', e); return; }
+
+    const globeMap = new mapboxgl.Map({
+      container: 'globeMap',
+      style: 'mapbox://styles/mapbox/dark-v11',
+      projection: 'globe',
+      zoom: 1.5,
+      center: [0, 20],          // Atlantic-facing, equatorial start
+      pitch: 0,
+      bearing: 0,
+      attributionControl: false,
+      interactive: false,
+    });
+
+    globeMap.on('style.load', () => {
+      globeMap.setFog({
+        color: 'rgb(4,8,14)', 'high-color': 'rgb(6,20,40)',
+        'horizon-blend': 0.04, 'space-color': 'rgb(4,8,14)', 'star-intensity': 0.6
+      });
+    });
+
+    // Equatorial rotation — increment longitude, keep latitude fixed
+    let lng = 0;
+    function rotate() {
+      lng = (lng + 0.15) % 360;
+      globeMap.setCenter([lng - 180, 20]);
+      requestAnimationFrame(rotate);
+    }
+    globeMap.on('load', () => { rotate(); loadData(globeMap); setInterval(() => loadData(globeMap), 30000); });
+
+    // ── PIN IMAGE — identical to CraicGlobe ─────────────
+    function makePinCanvas(logoImg) {
+      const c=document.createElement('canvas'); c.width=32; c.height=48;
+      const ctx=c.getContext('2d');
+      ctx.beginPath(); ctx.moveTo(14,22); ctx.lineTo(18,22); ctx.lineTo(16.5,46); ctx.lineTo(15.5,46); ctx.closePath(); ctx.fillStyle='#cc2200'; ctx.fill();
+      ctx.beginPath(); ctx.arc(16,13,11,0,Math.PI*2); ctx.fillStyle='#52C47C'; ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+      if(logoImg){ctx.save();ctx.beginPath();ctx.arc(16,13,8.5,0,Math.PI*2);ctx.clip();ctx.drawImage(logoImg,7.5,4.5,17,17);ctx.restore();}
+      ctx.beginPath(); ctx.arc(12,9,2.5,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fill();
+      return c;
+    }
+
+    function loadPinImage() {
+      return new Promise(resolve => {
+        if(globeMap.hasImage('pin-green')){resolve();return;}
+        const logo=new Image(); logo.crossOrigin='anonymous';
+        const done=img=>{const c=makePinCanvas(img);globeMap.addImage('pin-green',{width:32,height:48,data:new Uint8Array(c.getContext('2d').getImageData(0,0,32,48).data.buffer)},{sdf:false});resolve();};
+        logo.onload=()=>done(logo); logo.onerror=()=>done(null);
+        logo.src='https://proof-of-pint.vercel.app/craic.png?v='+Date.now();
+      });
+    }
+
+    function setupPinLayers(pints) {
+      const features=pints.filter(p=>p.pub_lat&&p.pub_lng).map(p=>({type:'Feature',geometry:{type:'Point',coordinates:[p.pub_lng,p.pub_lat]},properties:{pub:p.pub}}));
+      if(globeMap.getSource('pints')){globeMap.getSource('pints').setData({type:'FeatureCollection',features});return;}
+      globeMap.addSource('pints',{type:'geojson',data:{type:'FeatureCollection',features},cluster:true,clusterMaxZoom:10,clusterRadius:40});
+      globeMap.addLayer({id:'clusters',type:'circle',source:'pints',filter:['has','point_count'],paint:{'circle-color':'#52C47C','circle-radius':['step',['get','point_count'],14,5,18,20,22],'circle-opacity':0.9,'circle-stroke-width':2,'circle-stroke-color':'rgba(255,255,255,0.5)'}});
+      globeMap.addLayer({id:'cluster-count',type:'symbol',source:'pints',filter:['has','point_count'],layout:{'text-field':'{point_count_abbreviated}','text-size':12},paint:{'text-color':'#060a0f'}});
+      globeMap.addLayer({id:'pins',type:'symbol',source:'pints',filter:['!',['has','point_count']],layout:{'icon-image':'pin-green','icon-size':0.55,'icon-allow-overlap':true,'icon-anchor':'bottom'}});
+    }
+
+    async function loadData(map) {
+      try {
+        const [pr,sr]=await Promise.all([fetch('/api/pints'),fetch('/api/stats')]);
+        const pj=await pr.json(); const sj=await sr.json();
+        pintsData=pj.pints||[];
+        const total=sj.total_pints||pintsData.length||0;
+        const el=document.getElementById('liveCount');
+        if(el) el.textContent=total.toLocaleString()+' pints verified worldwide';
+        const tryPins=()=>loadPinImage().then(()=>setupPinLayers(pintsData));
+        if(map.isStyleLoaded()) tryPins(); else map.on('style.load',tryPins);
+        renderLiveFeed(pintsData);
+      } catch(err){
+        console.warn('Data load error:',err);
+        const el=document.getElementById('liveCount');
+        if(el&&el.textContent==='Loading...') el.textContent='Pints verified worldwide';
+      }
+    }
+  }
+
+  initGlobe();
+
+  // ── LIVE FEED ──────────────────────────────────────────
+  function timeAgo(d){const m=Math.floor((Date.now()-d)/60000);if(m<1)return 'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+  function renderLiveFeed(pints){
+    const feed=document.getElementById('liveFeed');if(!feed)return;
+    const flags={IE:'🇮🇪',GB:'🇬🇧',US:'🇺🇸',AU:'🇦🇺',DE:'🇩🇪',CA:'🇨🇦',FR:'🇫🇷',NZ:'🇳🇿',ZA:'🇿🇦',AE:'🇦🇪'};
+    const sorted=[...pints].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,6);
+    if(!sorted.length){feed.innerHTML='<div class="feed-item"><div class="feed-left"><span style="font-size:18px">☘️</span><div><div class="feed-name">Be the first to verify a pint!</div></div></div></div>';return;}
+    feed.innerHTML=sorted.map(p=>`<div class="feed-item"><div class="feed-left"><span style="font-size:18px">${flags[p.country_code]||'🍺'}</span><div><div class="feed-name">${p.pub||'Irish pub'}</div><div class="feed-pub">${[p.county,p.country].filter(Boolean).join(', ')}</div></div></div><div class="feed-time">${p.timestamp?timeAgo(new Date(p.timestamp)):''}</div></div>`).join('');
+  }
+
+  // ── FIND A PUB ─────────────────────────────────────────
+  function loadFindPub(){
+    document.getElementById('findPubLoading').classList.remove('hidden');
+    document.getElementById('findPubError').classList.add('hidden');
+    document.getElementById('findPubList').classList.add('hidden');
+    document.getElementById('findPubSubtitle').textContent='Finding nearest Irish pubs...';
+    if(!navigator.geolocation){showFindPubError('Geolocation not supported on this device.');return;}
+    navigator.geolocation.getCurrentPosition(
+      async pos=>{
+        try{
+          const res=await fetch(`/api/find-pubs?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`);
+          const data=await res.json();
+          if(data.error){showFindPubError(data.error);return;}
+          if(!data.pubs||!data.pubs.length){showFindPubError('No Irish pubs found nearby. Try somewhere else! ☘️');return;}
+          renderFindPubResults(data.pubs,data);
+        }catch(e){console.error('find-pubs error:',e);showFindPubError('Something went wrong. Please try again.');}
+      },
+      ()=>showFindPubError('Location access denied. Please enable location and try again.'),
+      {timeout:10000,maximumAge:60000}
+    );
+  }
+  function showFindPubError(msg){document.getElementById('findPubLoading').classList.add('hidden');document.getElementById('findPubErrorMsg').textContent=msg;document.getElementById('findPubError').classList.remove('hidden');}
+  function renderFindPubResults(pubs,data){
+    document.getElementById('findPubLoading').classList.add('hidden');
+    const verified=pubs.filter(p=>p.verified).length;
+    document.getElementById('findPubSubtitle').textContent=`${pubs.length} Irish pubs found · ${verified} $CRAIC verified`;
+    const list=document.getElementById('findPubList');
+    list.innerHTML=pubs.map(pub=>{
+      const stars=pub.rating?'★'.repeat(Math.round(pub.rating))+'☆'.repeat(5-Math.round(pub.rating)):null;
+      const open=pub.open_now===true?'<span class="pub-open">Open Now</span>':pub.open_now===false?'<span class="pub-closed">Closed</span>':'';
+      const badge=pub.verified?`<div class="pub-verified-badge">☘️ $CRAIC Verified · ${pub.pint_count} pint${pub.pint_count!==1?'s':''}</div>`:'';
+      return `<div class="pub-result${pub.verified?' verified':''}">
+        <div class="pub-result-top"><div class="pub-result-name">${pub.name}</div><div class="pub-result-dist">${pub.distance}</div></div>
+        <div class="pub-result-addr">${pub.address}</div>
+        <div class="pub-result-meta">${stars?`<span class="pub-result-rating">${stars} ${pub.rating}${pub.total_ratings?` (${pub.total_ratings.toLocaleString()})`:''}</span>`:''} ${open}</div>
+        ${badge}
+        <div class="pub-result-actions">
+          <a href="${pub.maps_url}" target="_blank" class="pub-dir-btn">📍 Directions</a>
+          <button class="pub-in-btn" onclick="showScreen('camera');initCamera();">🍺 Verify here</button>
+        </div>
+      </div>`;
+    }).join('');
+    list.classList.remove('hidden');
+  }
+
+  // ── CAMERA ─────────────────────────────────────────────
+  async function initCamera(){
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});document.getElementById('video').srcObject=stream;getLocation().then(loc=>{if(loc)userLocation=loc;});}
+    catch{alert('Camera access needed to verify your pint. Please allow camera access and try again.');showScreen('landing');}
+  }
+  function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+  function getLocation(){return new Promise(resolve=>{if(!navigator.geolocation){resolve(null);return;}navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>resolve(null),{timeout:8000,enableHighAccuracy:true});});}
+
+  // ── SNAP & VERIFY ──────────────────────────────────────
+  document.getElementById('snapBtn').addEventListener('click',async()=>{
+    const video=document.getElementById('video'),canvas=document.getElementById('canvas');
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    canvas.getContext('2d').drawImage(video,0,0);stopCamera();
+    const imageBase64=canvas.toDataURL('image/jpeg',0.7);
+    showScreen('verifying');resetVerifySteps();setVStep(2,'running','⟳',true);
+    try{
+      const r=await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'find_pubs',image_base64:imageBase64,lat:userLocation?.lat||null,lng:userLocation?.lng||null,user_id:userId})});
+      const result=await r.json();
+      if(result.status==='select_pub'){pendingVerification={p_hash:result.p_hash,photo_url:result.photo_url,country_code:result.country_code,country_name:result.country_name,county:result.county,is_on_island:result.is_on_island,lat:result.lat,lng:result.lng};animateVerifySteps(()=>showPubSelector(result.pubs));}
+      else if(result.status==='auto_confirm')animateVerifySteps(()=>confirmPub(result.pub));
+      else if(result.status==='success')animateVerifySteps(()=>handleSuccess(result));
+      else showVerifyError(result.message||'Try a different angle! 🧐');
+    }catch{showVerifyError('The tap is broken. Try again! 📉');}
+  });
+
+  function resetVerifySteps(){[2,3,4].forEach(i=>setVStep(i,'waiting','·',false));document.getElementById('verifyError').classList.add('hidden');}
+  function setVStep(n,state,icon,active){const el=document.getElementById(`vstep${n}-icon`),lbl=document.getElementById(`vstep${n}-label`);el.className=`vstep-icon ${state}`;el.textContent=icon;if(lbl)lbl.style.color=active?'var(--text-dark)':'var(--gray-text)';}
+  function animateVerifySteps(cb){setTimeout(()=>{setVStep(2,'done','✓',true);setVStep(3,'running','⟳',true);},1200);setTimeout(()=>{setVStep(3,'done','✓',true);setVStep(4,'running','⟳',true);},2400);setTimeout(()=>{setVStep(4,'done','✓',true);setTimeout(cb,400);},3400);}
+  function showVerifyError(msg){resetVerifySteps();document.getElementById('verifyErrorMsg').textContent=msg;document.getElementById('verifyError').classList.remove('hidden');}
+
+  // ── PUB SELECTOR ───────────────────────────────────────
+  function showPubSelector(pubs){
+    const pubList=document.getElementById('pubList');
+    pubList.innerHTML=pubs&&pubs.length?pubs.map(pub=>{const dist=pub.dist_m?`${pub.dist_m}m away`:'';return `<div class="pub-option" onclick='pubSelected(${JSON.stringify(pub)})'><div class="pub-option-info"><div class="pub-option-name">${pub.name}</div><div class="pub-option-address">${pub.address||''}</div></div>${dist?`<div class="pub-option-dist">${dist}</div>`:''}<div class="pub-option-arrow">→</div></div>`;}).join(''):'<p style="color:var(--gray-text);padding:16px;text-align:center;">No nearby pubs found.</p>';
+    document.getElementById('pubSelector').classList.add('active');
+  }
+  function pubSelected(pub){document.getElementById('pubSelector').classList.remove('active');confirmPub(pub);}
+  document.getElementById('pubSelectorCancel').onclick=()=>{document.getElementById('pubSelector').classList.remove('active');pendingVerification=null;showScreen('camera');initCamera();};
+
+  // ── CONFIRM PUB ────────────────────────────────────────
+  async function confirmPub(pub){
+    showScreen('verifying');resetVerifySteps();setVStep(2,'running','⟳',true);
+    try{
+      const r=await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'confirm_pub',place_id:pub.place_id,pub_name:pub.name,user_id:userId,...pendingVerification})});
+      const result=await r.json();
+      if(result.status==='success')animateVerifySteps(()=>handleSuccess(result));
+      else showVerifyError(result.message||'Something went wrong. Try again!');
+    }catch{showVerifyError('The tap is broken. Try again! 📉');}
+  }
+
+  // ── SUCCESS ────────────────────────────────────────────
+  function handleSuccess(result){
+    verificationResult=result;pendingVerification=null;
+    const craic=result.craic_amount||5000,pubName=result.pub_name||'Irish pub',country=result.country_name||'';
+    document.getElementById('rewardAmount').textContent=craic.toLocaleString();
+    document.getElementById('rewardPubName').textContent=pubName+(country?' · '+country:'');
+    if(result.tx_hash){document.getElementById('txLink').href=`https://basescan.org/tx/${result.tx_hash}`;document.getElementById('txLinkContainer').classList.remove('hidden');}
+    document.getElementById('shareAmount').textContent=craic.toLocaleString();
+    document.getElementById('sharePubName').textContent=pubName;
+    document.getElementById('confirmCraic').textContent=craic.toLocaleString();
+    updateShareText(pubName,craic);showScreen('reward');
+  }
+
+  // ── WALLET ─────────────────────────────────────────────
+  async function handleConnectWallet(){
+    if(typeof window.ethereum!=='undefined'){
+      try{const accounts=await window.ethereum.request({method:'eth_requestAccounts'});if(accounts[0]){userId=accounts[0];sessionStorage.setItem('pop_wallet',userId);if(verificationResult)await sendCraic(userId);showScreen('share');}}
+      catch{alert('Wallet connection cancelled. You can still save your $CRAIC via email.');}
+    }else{window.open('https://www.coinbase.com/wallet','_blank');}
+  }
+  function handleCreateWallet(){window.open('https://www.coinbase.com/wallet/getting-started-extension','_blank');}
+  async function sendCraic(walletAddress){try{await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'send_craic',wallet_address:walletAddress,user_id:userId,result_ref:verificationResult?.result_ref||null})});}catch(e){console.error('sendCraic',e);}}
+
+  // ── EMAIL ──────────────────────────────────────────────
+  async function handleEmailSave(){
+    const email=document.getElementById('emailInput').value.trim();
+    if(!email||!email.includes('@')){alert('Please enter a valid email address.');return;}
+    try{await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_email',email,user_id:userId,result_ref:verificationResult?.result_ref||null})});}catch(e){console.error('Email save',e);}
+    showScreen('share');
+  }
+
+  // ── SHARE ──────────────────────────────────────────────
+  function updateShareText(pubName,craic){
+    const text=`🍺 Pint verified at ${pubName}\nJust earned ${craic.toLocaleString()} $CRAIC — proof-of-pint.vercel.app\n#ProofOfPint`;
+    const ta=document.getElementById('shareText');if(ta){ta.value=text;updateCharCount();}
+    const pp=document.getElementById('confirmPostPreview');if(pp)pp.innerHTML=`🍺 Pint verified at ${pubName}<br>Just earned ${craic.toLocaleString()} $CRAIC — proof-of-pint.vercel.app<br><span class="post-preview-tag">#ProofOfPint</span>`;
+  }
+  function updateCharCount(){const ta=document.getElementById('shareText'),cc=document.getElementById('charCount');if(!ta||!cc)return;const l=ta.value.length;cc.textContent=l;cc.style.color=l>260?'var(--danger)':'var(--gray-text)';}
+  document.getElementById('shareText').addEventListener('input',updateCharCount);
+  function handlePostToX(){const text=document.getElementById('shareText').value;window.open('https://x.com/intent/post?text='+encodeURIComponent(text),'_blank');showScreen('confirm');}
+
+  // ── LEADERBOARD ────────────────────────────────────────
+  function switchLb(tab){
+    ['global','county','friends'].forEach(t=>document.getElementById('lt-'+t).classList.toggle('active',t===tab));
+    document.getElementById('lbList').innerHTML='<div class="lb-row"><div style="font-size:13px;color:var(--gray-text);">Coming soon</div></div>';
+  }
+  switchLb('global');
+  </script>
+</body>
+</html>

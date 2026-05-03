@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/pints", "destination": "/api/pints" },
+    { "source": "/api/stats", "destination": "/api/stats" },
+    { "source": "/api/config", "destination": "/api/config" },
+    { "source": "/api/find-pubs", "destination": "/api/find-pubs" },
+    { "source": "/", "destination": "/index.html" }
+  ]
+}
