@@ -1,0 +1,1 @@
+sed -i "s|MAPBOX_TOKEN_PLACEHOLDER|$MAPBOX_TOKEN|g" index.html
