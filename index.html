@@ -1,320 +1,580 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Craic Globe ☘️ — Proof of Pint</title>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>$CRAIC — Proof of Pint Live Map</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --green-deep: #0d3d20; --green-mid: #1a6b3a; --green-light: #52C47C;
-      --gold: #FFD700; --white: #ffffff; --off-white: #f7f7f5;
-      --gray-light: #f0f0ec; --gray-mid: #d0d0c8; --gray-text: #888880;
-      --text-dark: #111110;
-      --font-serif: 'DM Serif Display', Georgia, serif;
-      --font-sans: 'DM Sans', -apple-system, sans-serif;
-      --radius-md: 14px; --radius-full: 9999px;
+      --green: #52C47C; --green-dark: #16a34a;
+      --bg: #060a0f; --bg2: #0d1520;
+      --text: #e8f4e8; --text-muted: #6b8f7a;
+      --border: rgba(82, 196, 124, 0.15);
+      --font: 'Syne', sans-serif; --mono: 'JetBrains Mono', monospace;
     }
-    html, body { height: 100%; font-family: var(--font-sans); background: #060a0f; color: var(--text-dark); overflow-x: hidden; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
 
-    /* ── GLOBE ── */
-    #globeMap { width: 100%; height: 60vh; min-height: 320px; background: #060a0f; }
-    .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+    #map { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
 
-    /* ── HEADER OVERLAY ── */
-    .globe-header {
-      position: absolute; top: 0; left: 0; right: 0;
-      padding: 20px 20px 0;
-      display: flex; align-items: center; justify-content: space-between;
-      z-index: 10; pointer-events: none;
+    /* Hide Mapbox logo and attribution for cleaner look */
+    .mapboxgl-ctrl-logo { display: none !important; }
+    .mapboxgl-ctrl-attrib { opacity: 0.3; font-size: 9px; }
+
+    /* ---- STATS BAR ---- */
+    #stats-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 52px;
+      background: rgba(6,10,15,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px; z-index: 100;
+      overflow-x: auto; overflow-y: hidden;
     }
-    .globe-logo { font-family: var(--font-serif); font-size: 18px; color: var(--white); }
-    .globe-logo span { color: var(--gold); }
-    .live-pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: var(--radius-full); padding: 6px 14px;
-      pointer-events: none;
+    #stats-bar::-webkit-scrollbar { display: none; }
+    .logo { font-size: 16px; font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .logo img { width: 24px; height: 24px; border-radius: 50%; }
+    .stat { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
+    .stat-value { font-size: 14px; font-weight: 700; color: var(--green); font-family: var(--mono); }
+    .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+    .launch-btn { margin-left: auto; padding: 7px 14px; background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; }
+    .launch-btn:hover { opacity: 0.85; }
+
+    /* ---- ZOOM BACK ---- */
+    #zoom-back {
+      position: fixed; top: 62px; left: 50%; transform: translateX(-50%);
+      padding: 8px 20px; background: var(--green); color: #060a0f;
+      font-family: var(--font); font-weight: 700; font-size: 13px;
+      border: none; border-radius: 20px; cursor: pointer;
+      z-index: 200; display: none;
+      box-shadow: 0 4px 20px rgba(82,196,124,0.4);
     }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: livepulse 1.6s ease-in-out infinite; }
-    @keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.85)} }
-    .live-pill span { font-size: 12px; color: rgba(255,255,255,0.8); font-weight: 500; }
 
-    /* ── STATS BAR ── */
-    .stats-bar {
-      background: var(--green-deep);
-      display: flex; justify-content: space-around;
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+    /* ---- PUB CARD ---- */
+    #pub-card {
+      position: fixed; left: 16px; top: 62px; width: 260px;
+      background: rgba(13,21,32,0.95); backdrop-filter: blur(16px);
+      border: 1px solid var(--green); border-radius: 12px; padding: 16px;
+      z-index: 200; display: none; animation: card-in 0.2s ease;
     }
-    .stat-item { text-align: center; }
-    .stat-num { font-family: var(--font-serif); font-size: 22px; color: var(--gold); line-height: 1; }
-    .stat-lbl { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+    @keyframes card-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .pub-card-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+    .pub-card-name { font-size: 14px; font-weight: 800; color: var(--green); margin-bottom: 3px; padding-right: 20px; }
+    .pub-card-location { font-size: 10px; color: var(--text-muted); margin-bottom: 12px; }
+    .pub-card-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; color: var(--text-muted); }
+    .pub-card-row a { color: var(--green); text-decoration: none; font-weight: 600; }
+    .stars { color: #f59e0b; font-size: 10px; }
+    .pub-card-divider { height: 1px; background: var(--border); margin: 10px 0; }
+    .pub-card-pints { font-size: 12px; font-weight: 700; color: var(--text); }
+    .pub-card-pints span { color: var(--green); font-family: var(--mono); }
+    .pub-card-maps { display: block; margin-top: 10px; padding: 8px; background: var(--green); color: #060a0f; text-align: center; border-radius: 6px; font-weight: 700; font-size: 11px; text-decoration: none; }
 
-    /* ── BODY ── */
-    .page-body { background: var(--off-white); }
-
-    /* ── LEADERBOARD ── */
-    .section { padding: 20px 20px 0; }
-    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gray-text); margin-bottom: 12px; }
-
-    .lb-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-    .lb-tab {
-      padding: 6px 14px; border-radius: var(--radius-full);
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      border: 1.5px solid var(--gray-mid);
-      background: transparent; color: var(--gray-text);
-      font-family: var(--font-sans); transition: all 0.15s;
+    /* ---- BOTTOM SHEET ---- */
+    #bottom-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 300;
+      display: flex; flex-direction: column;
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+      transform: translateY(calc(100% - 44px));
     }
-    .lb-tab.active { background: var(--green-deep); color: var(--white); border-color: var(--green-deep); }
-
-    .lb-list { display: flex; flex-direction: column; gap: 0; }
-    .lb-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 11px 0; border-bottom: 1px solid var(--gray-light);
+    #bottom-sheet.open { transform: translateY(0); }
+    #sheet-handle {
+      background: rgba(13,21,32,0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      height: 44px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; cursor: pointer; flex-shrink: 0; user-select: none;
     }
-    .lb-row:last-child { border-bottom: none; }
-    .lb-row-left { display: flex; align-items: center; gap: 10px; }
-    .lb-rank { font-size: 12px; color: var(--gray-text); width: 22px; font-weight: 600; }
-    .lb-rank.gold   { color: #f59e0b; }
-    .lb-rank.silver { color: #94a3b8; }
-    .lb-rank.bronze { color: #b45309; }
-    .lb-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
-    .lb-sub  { font-size: 11px; color: var(--gray-text); margin-top: 1px; }
-    .lb-count { font-size: 13px; font-weight: 600; color: var(--green-mid); }
-    .lb-empty { padding: 20px 0; text-align: center; color: var(--gray-text); font-size: 13px; }
-
-    /* ── FEED ── */
-    .feed-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--gray-light); }
-    .feed-item:last-child { border-bottom: none; }
-    .feed-left { display: flex; align-items: center; gap: 10px; }
-    .feed-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
-    .feed-pub  { font-size: 11px; color: var(--gray-text); margin-top: 1px; }
-    .feed-time { font-size: 11px; color: var(--gray-mid); white-space: nowrap; }
-
-    /* ── CTA ── */
-    .cta-bar { padding: 20px; }
-    .btn-cta {
-      display: flex; align-items: center; justify-content: center;
-      width: 100%; padding: 16px 20px;
-      background: var(--gold); color: var(--green-deep);
-      font-family: var(--font-sans); font-size: 15px; font-weight: 700;
-      border: none; border-radius: var(--radius-full); cursor: pointer;
-      text-decoration: none; transition: transform 0.12s;
+    #sheet-handle-left { display: flex; align-items: center; gap: 12px; }
+    #sheet-handle-pill { width: 36px; height: 4px; background: var(--border); border-radius: 2px; }
+    #sheet-handle-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    #sheet-toggle-icon { font-size: 11px; color: var(--text-muted); transition: transform 0.3s; }
+    #bottom-sheet.open #sheet-toggle-icon { transform: rotate(180deg); }
+    #sheet-content {
+      background: rgba(13,21,32,0.97); backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border); max-height: 55vh; overflow-y: auto;
     }
-    .btn-cta:active { transform: scale(0.97); }
+    #sheet-content::-webkit-scrollbar { width: 3px; }
+    #sheet-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .lb-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .lb-tab { flex: 1; padding: 10px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-align: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: none; font-family: var(--font); }
+    .lb-tab.active { color: var(--green); background: rgba(82,196,124,0.08); }
+    .lb-zoom-hint { font-size: 9px; color: var(--text-muted); padding: 6px 14px 2px; }
+    .lb-list { padding: 6px 0; }
+    .lb-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; transition: background 0.15s; cursor: pointer; }
+    .lb-item:hover { background: rgba(82,196,124,0.08); }
+    .lb-rank { font-size: 11px; font-family: var(--mono); color: var(--text-muted); min-width: 18px; }
+    .lb-name { font-size: 12px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-count { font-size: 11px; font-family: var(--mono); color: var(--green); }
+    #live-feed-row { height: 38px; border-top: 1px solid var(--border); display: flex; align-items: center; overflow: hidden; }
+    .feed-label { padding: 0 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--green); white-space: nowrap; border-right: 1px solid var(--border); }
+    .feed-label span { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 5px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .feed-track { flex: 1; overflow: hidden; height: 100%; }
+    .feed-inner { display: flex; align-items: center; height: 100%; white-space: nowrap; animation: scroll-feed 40s linear infinite; gap: 60px; padding-left: 16px; }
+    @keyframes scroll-feed { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    .feed-item { font-size: 11px; color: var(--text-muted); }
+    .feed-item strong { color: var(--text); font-weight: 700; }
+    .feed-item .feed-craic { color: var(--green); font-family: var(--mono); }
 
-    /* ── LOADING SKELETON ── */
-    .skeleton { background: linear-gradient(90deg, var(--gray-light) 25%, #e8e8e4 50%, var(--gray-light) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .skel-row { height: 14px; margin-bottom: 10px; }
+    /* ---- PUB SEARCH ---- */
+    #pub-search-wrap { padding: 8px 12px 4px; border-bottom: 1px solid var(--border); display: none; }
+    #pub-search-input {
+      width: 100%; padding: 8px 12px; background: rgba(82,196,124,0.08);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--mono); font-size: 12px;
+      outline: none; transition: border-color 0.2s;
+    }
+    #pub-search-input:focus { border-color: var(--green); }
+    #pub-search-input::placeholder { color: var(--text-muted); }
+    #pub-search-count { font-size: 9px; color: var(--text-muted); padding: 4px 2px 0; text-align: right; }
+    .lb-search-link {
+      display: block; text-align: center; padding: 6px;
+      font-size: 10px; color: var(--text-muted); cursor: pointer;
+      border-top: 1px solid var(--border); transition: color 0.2s;
+    }
+    .lb-search-link:hover { color: var(--green); }
 
-    /* ── RELATIVE WRAPPER ── */
-    .globe-wrap { position: relative; }
+    /* ---- FIND A PUB BUTTON ---- */
+    #find-pub-btn {
+      position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%);
+      padding: 11px 24px; background: var(--green); color: #060a0f;
+      font-family: var(--font); font-weight: 800; font-size: 13px;
+      border: none; border-radius: 30px; cursor: pointer; z-index: 250;
+      box-shadow: 0 4px 24px rgba(82,196,124,0.45);
+      display: flex; align-items: center; gap: 8px;
+      transition: opacity 0.2s, bottom 0.35s cubic-bezier(0.4,0,0.2,1);
+      white-space: nowrap;
+    }
+    #find-pub-btn:hover { opacity: 0.9; }
+    #find-pub-btn.sheet-open { bottom: calc(55vh + 56px); }
 
-    /* ── DIVIDER ── */
-    .divider { height: 1px; background: var(--gray-light); margin: 0 20px; }
-    .section-bottom { padding-bottom: 20px; }
+    /* ---- FIND A PUB PANEL ---- */
+    #find-pub-panel {
+      position: fixed; inset: 0; background: rgba(6,10,15,0.97);
+      backdrop-filter: blur(16px); z-index: 500;
+      display: none; flex-direction: column; animation: panel-in 0.25s ease;
+    }
+    @keyframes panel-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    #find-pub-panel .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+    #find-pub-panel .panel-title { font-size: 20px; font-weight: 800; color: var(--green); }
+    #find-pub-panel .panel-close { background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; padding: 4px 8px; }
+    #find-pub-panel .panel-subtitle { font-size: 12px; color: var(--text-muted); padding: 12px 24px 0; font-family: var(--mono); }
+    #find-pub-panel .pub-list { flex: 1; overflow-y: auto; padding: 12px 16px 20px; }
+    #find-pub-panel .pub-list::-webkit-scrollbar { width: 4px; }
+    #find-pub-panel .pub-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .pub-result { background: rgba(13,21,32,0.9); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+    .pub-result:hover { border-color: var(--green); }
+    .pub-result.verified { border-color: rgba(82,196,124,0.5); }
+    .pub-result-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .pub-result-name { font-size: 14px; font-weight: 800; color: var(--text); flex: 1; }
+    .pub-result-distance { font-size: 11px; font-family: var(--mono); color: var(--text-muted); white-space: nowrap; }
+    .pub-result-address { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+    .pub-result-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .pub-result-rating { font-size: 11px; color: #f59e0b; }
+    .pub-result-open { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+    .pub-result-open.open { background: rgba(82,196,124,0.15); color: var(--green); }
+    .pub-result-open.closed { background: rgba(220,38,38,0.15); color: #ef4444; }
+    .pub-verified-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; color: var(--green); background: rgba(82,196,124,0.12); border: 1px solid rgba(82,196,124,0.3); padding: 3px 8px; border-radius: 10px; margin-bottom: 10px; }
+    .pub-result-actions { display: flex; gap: 8px; }
+    .pub-directions-btn { flex: 1; padding: 9px; background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: 12px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; transition: opacity 0.2s; display: block; }
+    .pub-directions-btn:hover { opacity: 0.85; }
+    .pub-checkin-btn { flex: 1; padding: 9px; background: transparent; color: var(--green); font-family: var(--font); font-weight: 700; font-size: 12px; border: 1px solid var(--green); border-radius: 8px; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; display: block; }
+    .pub-checkin-btn:hover { background: rgba(82,196,124,0.1); }
+    #find-pub-panel .panel-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 14px; }
+    #find-pub-panel .panel-loading p { font-size: 13px; color: var(--text-muted); font-family: var(--mono); }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #find-pub-panel .panel-error { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 12px; padding: 24px; text-align: center; }
+    #find-pub-panel .panel-error p { font-size: 13px; color: var(--text-muted); }
+    #find-pub-panel .panel-error .retry-btn { padding: 10px 24px; background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: 13px; border: none; border-radius: 8px; cursor: pointer; }
+
+    /* ---- LOADING ---- */
+    #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 999; transition: opacity 0.5s; }
+    #loading img { width: 64px; height: 64px; border-radius: 50%; animation: spin-slow 4s linear infinite; }
+    @keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    #loading p { font-size: 14px; color: var(--text-muted); font-family: var(--mono); }
+    #loading .loading-title { font-size: 22px; font-weight: 800; color: var(--green); }
+
+    /* Mapbox symbol layers handle pins — no custom marker CSS needed */
+
+    /* ---- PUB PROFILE PANEL ---- */
+    #pub-profile {
+      position: fixed; inset: 0; z-index: 600;
+      display: none; flex-direction: column;
+      animation: panel-in 0.3s ease;
+    }
+    #pub-profile-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      background-color: #060a0f;
+      filter: brightness(0.45);
+    }
+    #pub-profile-content {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; height: 100%;
+    }
+    #pub-profile-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 52px 20px 16px;
+      background: linear-gradient(to bottom, rgba(6,10,15,0.9) 0%, transparent 100%);
+    }
+    #pub-profile-back {
+      background: rgba(13,21,32,0.8); border: 1px solid var(--border);
+      color: var(--text); font-family: var(--font); font-weight: 700; font-size: 13px;
+      padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap;
+    }
+    #pub-profile-back:hover { background: rgba(82,196,124,0.15); }
+    #pub-profile-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    #pub-profile-body {
+      flex: 1; overflow-y: auto; padding: 20px;
+      background: linear-gradient(to top, rgba(6,10,15,0.97) 60%, transparent 100%);
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    #pub-profile-body::-webkit-scrollbar { width: 3px; }
+    #pub-profile-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    #pub-profile-name { font-size: clamp(18px, 5vw, 28px); font-weight: 800; color: var(--text); margin-bottom: 4px; line-height: 1.2; word-break: break-word; }
+    #pub-profile-location { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+    #pub-profile-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(82,196,124,0.15); border: 1px solid rgba(82,196,124,0.4);
+      color: var(--green); font-size: 12px; font-weight: 700;
+      padding: 6px 14px; border-radius: 20px; margin-bottom: 20px;
+    }
+    #pub-profile-stats {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;
+    }
+    .pp-stat {
+      background: rgba(13,21,32,0.85); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .pp-stat-value { font-size: 20px; font-weight: 800; color: var(--green); font-family: var(--mono); }
+    .pp-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+    #pub-profile-actions { display: flex; flex-direction: column; gap: 10px; }
+    .pp-btn {
+      display: block; width: 100%; padding: 14px;
+      font-family: var(--font); font-weight: 700; font-size: 13px;
+      border-radius: 10px; text-align: center; text-decoration: none;
+      border: none; cursor: pointer; transition: opacity 0.2s;
+    }
+    .pp-btn:hover { opacity: 0.85; }
+    .pp-btn-primary { background: var(--green); color: #060a0f; }
+    .pp-btn-secondary { background: rgba(13,21,32,0.85); color: var(--text); border: 1px solid var(--border); }
+    .pp-btn-basescan { background: rgba(13,21,32,0.85); color: #6366f1; border: 1px solid rgba(99,102,241,0.3); }
+    .pp-btn-fly { background: rgba(82,196,124,0.1); color: var(--green); border: 1px solid rgba(82,196,124,0.3); }
+
+    /* ---- MOBILE RESPONSIVE FIXES ---- */
+    @media (max-width: 480px) {
+
+      /* Stats bar — tighten spacing, hide least critical stats */
+      #stats-bar { padding: 0 10px; gap: 8px; height: 48px; }
+      .logo { font-size: 13px; }
+      .logo img { width: 20px; height: 20px; }
+      .stat-value { font-size: 13px; }
+      .stat-label { font-size: 8px; }
+      /* Hide $CRAIC out and Countries columns on small screens */
+      #stats-bar .stat:has(#stat-craic),
+      #stats-bar .stat:has(#stat-countries) { display: none; }
+      /* Also hide their adjacent dividers */
+      #stats-bar .stat-divider:nth-child(4),
+      #stats-bar .stat-divider:nth-child(6) { display: none; }
+      .launch-btn { padding: 6px 10px; font-size: 11px; }
+
+      /* Pub card — full width so it doesn't overflow */
+      #pub-card {
+        left: 10px; right: 10px; width: auto; top: 58px;
+      }
+
+      /* Find a pub button — nudge up for Safari bottom bar */
+      #find-pub-btn {
+        bottom: 70px;
+        font-size: 12px;
+        padding: 10px 20px;
+      }
+      #find-pub-btn.sheet-open { bottom: calc(50vh + 70px); }
+
+      /* Bottom sheet — slightly shallower so handle is always visible */
+      #sheet-content { max-height: 50vh; }
+      #sheet-handle { padding: 0 14px; }
+      #sheet-handle-label { font-size: 10px; }
+
+      /* Leaderboard tabs — smaller text so all 3 fit */
+      .lb-tab { font-size: 9px; padding: 10px 2px; }
+
+      /* Bottom sheet starting position — show more of the handle */
+      #bottom-sheet { transform: translateY(calc(100% - 44px)); }
+
+      /* Zoom back button — ensure it clears the stats bar */
+      #zoom-back { top: 58px; }
+
+      /* Pub profile header padding for notch/status bar */
+      #pub-profile-header { padding-top: 60px; }
+
+      /* Find a pub panel header */
+      #find-pub-panel .panel-header { padding: 60px 20px 16px; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="globe-wrap">
-    <div id="globeMap"></div>
-    <div class="globe-header">
-      <div class="globe-logo">Craic <span>Globe</span> ☘️</div>
-      <div class="live-pill"><div class="live-dot"></div><span id="liveCount">Loading...</span></div>
+<div id="loading">
+  <img src="https://proof-of-pint.vercel.app/craic.png" alt="CRAIC" />
+  <div class="loading-title">☘️ Proof of Pint</div>
+  <p>Loading the globe...</p>
+</div>
+
+<div id="map"></div>
+
+<div id="stats-bar">
+  <div class="logo"><img src="https://proof-of-pint.vercel.app/craic.png" alt="CRAIC" />$CRAIC Live</div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-value" id="stat-total">—</div><div class="stat-label">Pints</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-value" id="stat-today">—</div><div class="stat-label">Today</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-value" id="stat-craic">—</div><div class="stat-label">$CRAIC out</div></div>
+  <div class="stat-divider"></div>
+  <div class="stat"><div class="stat-value" id="stat-countries">—</div><div class="stat-label">Countries</div></div>
+  <a href="https://proof-of-pint.vercel.app" target="_blank" class="launch-btn">Open App ☘️</a>
+</div>
+
+<button id="zoom-back" onclick="zoomOut()">← Back to Globe</button>
+
+<div id="pub-card">
+  <button class="pub-card-close" onclick="closePubCard()">✕</button>
+  <div class="pub-card-name" id="pc-name"></div>
+  <div class="pub-card-location" id="pc-location"></div>
+  <div id="pc-rating" class="pub-card-row"></div>
+  <div id="pc-phone" class="pub-card-row"></div>
+  <div id="pc-website" class="pub-card-row"></div>
+  <div class="pub-card-divider"></div>
+  <div class="pub-card-pints" id="pc-pints"></div>
+  <a id="pc-maps" href="#" target="_blank" class="pub-card-maps">📍 Open in Google Maps</a>
+</div>
+
+<button id="find-pub-btn" onclick="openFindPub()">🍺 Find an Irish Pub</button>
+
+<div id="bottom-sheet">
+  <div id="sheet-handle" onclick="toggleSheet()">
+    <div id="sheet-handle-left">
+      <div id="sheet-handle-pill"></div>
+      <div id="sheet-handle-label">🌍 Leaderboard & Live Feed</div>
+    </div>
+    <div id="sheet-toggle-icon">▲</div>
+  </div>
+  <div id="sheet-content">
+    <div class="lb-tabs">
+      <button class="lb-tab active" onclick="switchTab('countries', this)">🌍 Countries</button>
+      <button class="lb-tab" onclick="switchTab('counties', this)">📍 Irish Counties</button>
+      <button class="lb-tab" onclick="switchTab('pubs', this)">🍺 Pubs</button>
+    </div>
+    <div class="lb-zoom-hint" id="lb-hint">Tap a country to zoom in ☘️</div>
+    <div id="pub-search-wrap">
+      <input id="pub-search-input" type="text" placeholder="🔍 Search pubs by name or location..." oninput="searchPubs(this.value)" />
+      <div id="pub-search-count"></div>
+    </div>
+    <div class="lb-list" id="lb-list">
+      <div class="lb-item"><div class="lb-name" style="color:var(--text-muted);font-size:11px;">Loading...</div></div>
+    </div>
+    <div id="live-feed-row">
+      <div class="feed-label"><span></span>Live</div>
+      <div class="feed-track"><div class="feed-inner" id="feed-inner"></div></div>
     </div>
   </div>
+</div>
 
-  <div class="stats-bar">
-    <div class="stat-item"><div class="stat-num" id="statTotal">—</div><div class="stat-lbl">Pints verified</div></div>
-    <div class="stat-item"><div class="stat-num" id="statToday">—</div><div class="stat-lbl">Today</div></div>
-    <div class="stat-item"><div class="stat-num" id="statCraic">—</div><div class="stat-lbl">$CRAIC earned</div></div>
-    <div class="stat-item"><div class="stat-num" id="statCountries">—</div><div class="stat-lbl">Countries</div></div>
+<div id="find-pub-panel">
+  <div class="panel-header">
+    <div class="panel-title">☘️ Find an Irish Pub</div>
+    <button class="panel-close" onclick="closeFindPub()">✕</button>
   </div>
-
-  <div class="page-body">
-
-    <!-- LEADERBOARD -->
-    <div class="section" style="padding-top:20px;">
-      <p class="section-label">Leaderboard</p>
-      <div class="lb-tabs">
-        <button class="lb-tab active" onclick="switchTab('countries')">🌍 Countries</button>
-        <button class="lb-tab" onclick="switchTab('counties')">☘️ Counties</button>
-        <button class="lb-tab" onclick="switchTab('pubs')">🍺 Pubs</button>
-        <button class="lb-tab" onclick="switchTab('players')">👤 Players</button>
-      </div>
-      <div class="lb-list" id="lbList">
-        <div class="skeleton skel-row" style="width:80%"></div>
-        <div class="skeleton skel-row" style="width:65%"></div>
-        <div class="skeleton skel-row" style="width:72%"></div>
-      </div>
-    </div>
-
-    <div class="divider" style="margin-top:20px;"></div>
-
-    <!-- LIVE FEED -->
-    <div class="section section-bottom" style="padding-top:20px;">
-      <p class="section-label">Latest verified pints</p>
-      <div id="liveFeed">
-        <div class="skeleton skel-row" style="width:90%"></div>
-        <div class="skeleton skel-row" style="width:75%"></div>
-        <div class="skeleton skel-row" style="width:82%"></div>
-      </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="cta-bar">
-      <a class="btn-cta" href="https://proof-of-pint.vercel.app">🍺 Verify your pint → Earn $CRAIC</a>
-    </div>
-
-    <p style="font-size:11px;color:var(--gray-text);text-align:center;padding:0 20px 32px;">
-      Proof of Pint · $CRAIC on Base · <a href="https://proof-of-pint.vercel.app" style="color:var(--green-mid);text-decoration:none;">proof-of-pint.vercel.app</a>
-    </p>
-
+  <div class="panel-subtitle" id="panel-subtitle">Searching near you...</div>
+  <div class="panel-loading" id="panel-loading">
+    <div class="spinner"></div>
+    <p>Finding nearby Irish pubs...</p>
   </div>
+  <div class="panel-error" id="panel-error">
+    <p>😬 Couldn't find pubs near you.<br>Make sure location access is enabled.</p>
+    <button class="retry-btn" onclick="openFindPub()">Try Again</button>
+  </div>
+  <div class="pub-list" id="pub-list" style="display:none;"></div>
+</div>
 
-  <script>
-  'use strict';
-
-  // ── STATE ──
-  let leaderboardData = {};
-  let currentTab = 'countries';
-
-  // ── TABS ──
-  function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.lb-tab').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${tab}'`));
-    });
-    renderLeaderboard(tab);
-  }
-
-  function renderLeaderboard(tab) {
-    const list = document.getElementById('lbList');
-    const data = leaderboardData[tab] || [];
-    if (!data.length) {
-      list.innerHTML = '<div class="lb-empty">No data yet — be the first! 🍺</div>';
-      return;
-    }
-    const rankClass = i => i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-    const rankLabel = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-
-    list.innerHTML = data.map((item, i) => {
-      const name = item.name || '—';
-      const count = item.count || item.pints || 0;
-      const craic = (count * 5000).toLocaleString();
-      return `
-        <div class="lb-row">
-          <div class="lb-row-left">
-            <span class="lb-rank ${rankClass(i)}">${rankLabel(i)}</span>
-            <div>
-              <div class="lb-name">${name}</div>
-              <div class="lb-sub">${count} pint${count !== 1 ? 's' : ''}</div>
-            </div>
-          </div>
-          <div class="lb-count">${craic} $CRAIC</div>
-        </div>`;
-    }).join('');
-  }
-
-  // ── FEED ──
-  function timeAgo(d) {
-    const m = Math.floor((Date.now() - d) / 60000);
-    if (m < 1) return 'just now';
-    if (m < 60) return m + 'm ago';
-    const h = Math.floor(m / 60);
-    if (h < 24) return h + 'h ago';
-    return Math.floor(h / 24) + 'd ago';
-  }
-
-  function renderFeed(pints) {
-    const feed = document.getElementById('liveFeed');
-    const flags = {IE:'🇮🇪',GB:'🇬🇧',US:'🇺🇸',AU:'🇦🇺',DE:'🇩🇪',CA:'🇨🇦',FR:'🇫🇷',NZ:'🇳🇿',ZA:'🇿🇦',AE:'🇦🇪'};
-    const sorted = [...pints].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 8);
-    if (!sorted.length) {
-      feed.innerHTML = '<div class="lb-empty">Be the first to verify a pint! ☘️</div>';
-      return;
-    }
-    feed.innerHTML = sorted.map(p => `
-      <div class="feed-item">
-        <div class="feed-left">
-          <span style="font-size:18px">${flags[p.country_code] || '🍺'}</span>
-          <div>
-            <div class="feed-name">${p.pub || 'Irish pub'}</div>
-            <div class="feed-pub">${[p.county, p.country].filter(Boolean).join(', ')}</div>
-          </div>
+<!-- PUB PROFILE PANEL -->
+<div id="pub-profile">
+  <div id="pub-profile-bg"></div>
+  <div id="pub-profile-content">
+    <div id="pub-profile-header">
+      <button id="pub-profile-back" onclick="closePubProfile()">← Back</button>
+      <div id="pub-profile-title">☘️ $CRAIC Verified Pub</div>
+    </div>
+    <div id="pub-profile-body">
+      <div id="pub-profile-name"></div>
+      <div id="pub-profile-location"></div>
+      <div id="pub-profile-badge">☘️ <span id="pp-pint-count"></span></div>
+      <div id="pub-profile-stats">
+        <div class="pp-stat">
+          <div class="pp-stat-value" id="pp-rating">—</div>
+          <div class="pp-stat-label">Google Rating</div>
         </div>
-        <div class="feed-time">${p.timestamp ? timeAgo(new Date(p.timestamp)) : ''}</div>
-      </div>`).join('');
+        <div class="pp-stat">
+          <div class="pp-stat-value" id="pp-reviews">—</div>
+          <div class="pp-stat-label">Reviews</div>
+        </div>
+      </div>
+      <div id="pub-profile-actions">
+        <a id="pp-maps-btn" href="#" target="_blank" class="pp-btn pp-btn-primary">📍 Open in Google Maps</a>
+        <a id="pp-website-btn" href="#" target="_blank" class="pp-btn pp-btn-secondary" style="display:none">🌐 Visit Website</a>
+        <a id="pp-phone-btn" href="#" class="pp-btn pp-btn-secondary" style="display:none">📞 Call</a>
+        <a id="pp-basescan-btn" href="#" target="_blank" class="pp-btn pp-btn-basescan">⛓️ View on BaseScan</a>
+        <button id="pp-fly-btn" class="pp-btn pp-btn-fly" onclick="flyToPub()">📍 Take me there</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(async () => {
+  // ================================================================
+  // MAPBOX GLOBE
+  // Replaces Three.js entirely — correct coordinates guaranteed
+  // ================================================================
+  // Fetch token securely from /api/config — never hardcoded
+  const cfgRes = await fetch('/api/config');
+  const cfg = await cfgRes.json();
+  mapboxgl.accessToken = cfg.mapboxToken;
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    projection: 'globe',           // TRUE globe projection
+    zoom: 1.5,
+    center: [-8.2, 53.1],          // Start facing Ireland
+    pitch: 0,
+    bearing: 0,
+    attributionControl: true,
+  });
+
+  // Globe atmosphere styling
+  map.on('style.load', () => {
+    map.setFog({
+      color: 'rgb(4, 8, 14)',
+      'high-color': 'rgb(6, 20, 40)',
+      'horizon-blend': 0.04,
+      'space-color': 'rgb(4, 8, 14)',
+      'star-intensity': 0.6,
+    });
+  });
+
+  // ================================================================
+  // COUNTRY CENTRES — exact lat/lng, correct zoom levels
+  // zoom 2 = world view, zoom 5 = country fills screen
+  // ================================================================
+  const COUNTRY_CENTRES = {
+    'Ireland':              { center: [-8.2,   53.1],  zoom: 6.0 },
+    'United Kingdom':       { center: [-2.5,   54.0],  zoom: 5.2 },
+    'United States':        { center: [-98.0,  39.5],  zoom: 3.5 },
+    'Australia':            { center: [133.0, -25.0],  zoom: 3.5 },
+    'Canada':               { center: [-96.0,  56.0],  zoom: 3.2 },
+    'Germany':              { center: [10.0,   51.0],  zoom: 5.5 },
+    'France':               { center: [2.0,    46.0],  zoom: 5.2 },
+    'Spain':                { center: [-3.0,   40.0],  zoom: 5.2 },
+    'Italy':                { center: [12.0,   42.0],  zoom: 5.2 },
+    'Japan':                { center: [138.0,  36.0],  zoom: 5.0 },
+    'Singapore':            { center: [103.8,   1.3],  zoom: 10.0 },
+    'South Africa':         { center: [25.0,  -29.0],  zoom: 4.5 },
+    'United Arab Emirates': { center: [54.0,   24.0],  zoom: 6.5 },
+    'China':                { center: [103.0,  35.0],  zoom: 3.5 },
+    'New Zealand':          { center: [174.0, -41.0],  zoom: 5.0 },
+    'Argentina':            { center: [-64.0, -34.0],  zoom: 4.0 },
+    'Brazil':               { center: [-51.0, -14.0],  zoom: 3.8 },
+  };
+
+  let pintsData = [], leaderboardData = {}, activeTab = 'countries', pubPintCounts = {};
+  let sheetOpen = false;
+  // pins managed via GeoJSON source
+  let isZoomed = false;
+
+  // ================================================================
+  // ZOOM TO COUNTRY — one line, always correct
+  // ================================================================
+  function zoomToCountry(name) {
+    const c = COUNTRY_CENTRES[name];
+    if (!c) return;
+    isZoomed = true;
+    document.getElementById('zoom-back').style.display = 'block';
+    map.flyTo({
+      center: c.center,
+      zoom: c.zoom,
+      duration: 1800,
+      essential: true
+    });
+    closePubCard();
+    if (sheetOpen) toggleSheet();
   }
 
-  // ── GLOBE ──
-  async function initGlobe() {
-    try {
-      const cfg = await fetch('/api/config').then(r => r.json());
-      if (!cfg.mapboxToken) { console.warn('No Mapbox token'); return; }
-      mapboxgl.accessToken = cfg.mapboxToken;
-    } catch (e) { console.error('Config fetch failed:', e); return; }
-
-    const map = new mapboxgl.Map({
-      container: 'globeMap',
-      style: 'mapbox://styles/mapbox/dark-v11',
-      projection: 'globe',
+  function zoomOut() {
+    isZoomed = false;
+    document.getElementById('zoom-back').style.display = 'none';
+    map.flyTo({
+      center: [-8.2, 53.1],
       zoom: 1.5,
-      center: [0, 20],
-      pitch: 0,
-      bearing: 0,
-      attributionControl: false,
-      interactive: false,
+      duration: 1800,
+      essential: true
     });
-
-    map.on('style.load', () => {
-      map.setFog({
-        color: 'rgb(4,8,14)', 'high-color': 'rgb(6,20,40)',
-        'horizon-blend': 0.04, 'space-color': 'rgb(4,8,14)', 'star-intensity': 0.6
-      });
-    });
-
-    let lng = 0;
-    function rotate() {
-      lng = (lng + 0.15) % 360;
-      map.setCenter([lng - 180, 20]);
-      requestAnimationFrame(rotate);
-    }
-    map.on('load', () => { rotate(); });
-
-    return map;
+    closePubCard();
   }
 
-  // ── PIN IMAGE ──
-  function makePinCanvas(logoImg) {
-    const c = document.createElement('canvas'); c.width = 32; c.height = 48;
-    const ctx = c.getContext('2d');
-    ctx.beginPath(); ctx.moveTo(14,22); ctx.lineTo(18,22); ctx.lineTo(16.5,46); ctx.lineTo(15.5,46); ctx.closePath();
-    ctx.fillStyle = '#cc2200'; ctx.fill();
-    ctx.beginPath(); ctx.arc(16,13,11,0,Math.PI*2); ctx.fillStyle = '#52C47C'; ctx.fill();
+  // ================================================================
+  // PIN IMAGE — $CRAIC logo pin drawn on canvas
+  // ================================================================
+  function makePinCanvas(headColor, spikeColor, logoImg) {
+    const W = 32, H = 48;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    // Spike
+    ctx.beginPath();
+    ctx.moveTo(14,22); ctx.lineTo(18,22); ctx.lineTo(16.5,46); ctx.lineTo(15.5,46);
+    ctx.closePath(); ctx.fillStyle = spikeColor; ctx.fill();
+    // Circle head
+    ctx.beginPath(); ctx.arc(16,13,11,0,Math.PI*2);
+    ctx.fillStyle = headColor; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
-    if (logoImg) { ctx.save(); ctx.beginPath(); ctx.arc(16,13,8.5,0,Math.PI*2); ctx.clip(); ctx.drawImage(logoImg,7.5,4.5,17,17); ctx.restore(); }
-    ctx.beginPath(); ctx.arc(12,9,2.5,0,Math.PI*2); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fill();
-    return c;
+    // Logo or shamrock fallback
+    if (logoImg) {
+      ctx.save(); ctx.beginPath(); ctx.arc(16,13,8.5,0,Math.PI*2); ctx.clip();
+      ctx.drawImage(logoImg, 7.5, 4.5, 17, 17); ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.beginPath(); ctx.arc(16,9,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(13,13,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(19,13,3,0,Math.PI*2); ctx.fill();
+      ctx.fillRect(15,15,2,4);
+    }
+    // Shine
+    ctx.beginPath(); ctx.arc(12,9,2.5,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fill();
+    return canvas;
   }
 
-  function loadPinImage(map) {
+  function registerPinImage(name, headColor, spikeColor, logoImg) {
+    if (map.hasImage(name)) map.removeImage(name);
+    const canvas = makePinCanvas(headColor, spikeColor, logoImg);
+    map.addImage(name, {
+      width: 32, height: 48,
+      data: new Uint8Array(canvas.getContext('2d').getImageData(0,0,32,48).data.buffer)
+    }, { sdf: false });
+  }
+
+  function loadPinImages() {
     return new Promise(resolve => {
-      if (map.hasImage('pin-green')) { resolve(); return; }
-      const logo = new Image(); logo.crossOrigin = 'anonymous';
-      const done = img => {
-        const c = makePinCanvas(img);
-        map.addImage('pin-green', { width:32, height:48, data: new Uint8Array(c.getContext('2d').getImageData(0,0,32,48).data.buffer) }, { sdf: false });
+      const logo = new Image();
+      logo.crossOrigin = 'anonymous';
+      const done = (img) => {
+        registerPinImage('pin-green', '#52C47C', '#cc2200', img);
         resolve();
       };
       logo.onload = () => done(logo);
@@ -323,66 +583,462 @@
     });
   }
 
-  function setupPins(map, pints) {
-    const features = pints
-      .filter(p => p.pub_lat && p.pub_lng)
-      .map(p => ({ type:'Feature', geometry:{ type:'Point', coordinates:[p.pub_lng, p.pub_lat] }, properties:{ pub: p.pub } }));
+  // ================================================================
+  // LAYERS — Mapbox native clustering
+  // Zoomed out: green cluster bubbles with count
+  // Zoomed in: individual $CRAIC pins per pub
+  // ================================================================
+  let lastPintFeatures = [];
 
+  function setupLayers() {
+    if (!map.getSource('pints')) {
+      map.addSource('pints', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: lastPintFeatures },
+        cluster: true,
+        clusterMaxZoom: 10,
+        clusterRadius: 40,
+      });
+    }
+    if (!map.getLayer('clusters')) {
+      map.addLayer({
+        id: 'clusters', type: 'circle', source: 'pints',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#52C47C',
+          'circle-radius': ['step', ['get', 'point_count'], 14, 5, 18, 20, 22],
+          'circle-opacity': 0.9,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255,255,255,0.5)',
+        }
+      });
+      map.addLayer({
+        id: 'cluster-count', type: 'symbol', source: 'pints',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12,
+        },
+        paint: { 'text-color': '#060a0f' }
+      });
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource('pints').getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
+      });
+      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+    }
+    if (!map.getLayer('pins')) {
+      map.addLayer({
+        id: 'pins', type: 'symbol', source: 'pints',
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'icon-image': 'pin-green',
+          'icon-size': 0.55,
+          'icon-allow-overlap': true,
+          'icon-anchor': 'bottom',
+        }
+      });
+      map.on('click', 'pins', (e) => {
+        const props = e.features[0].properties;
+        const pint = JSON.parse(props.pintData);
+        showPubCard(pint);
+        e.originalEvent.stopPropagation();
+      });
+      map.on('mouseenter', 'pins', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'pins', () => { map.getCanvas().style.cursor = ''; });
+    }
+  }
+
+  map.on('style.load', () => {
+    loadPinImages().then(() => {
+      setupLayers();
+      if (lastPintFeatures.length > 0 && map.getSource('pints')) {
+        map.getSource('pints').setData({ type: 'FeatureCollection', features: lastPintFeatures });
+      }
+    });
+  });
+
+  function updatePinLayer(pints) {
+    lastPintFeatures = pints
+      .filter(p => p.pub_lat && p.pub_lng)
+      .map(p => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.pub_lng, p.pub_lat] },
+        properties: { pub: p.pub, pintData: JSON.stringify(p) }
+      }));
+    setupLayers();
     if (map.getSource('pints')) {
-      map.getSource('pints').setData({ type:'FeatureCollection', features });
+      map.getSource('pints').setData({ type: 'FeatureCollection', features: lastPintFeatures });
+    }
+  }
+
+  // ================================================================
+  // PUB PROFILE PANEL
+  // ================================================================
+  let currentPubData = null;
+
+  function showPubProfile(pubName) {
+    // Find the most recent pint for this pub
+    const pint = pintsData.find(p => p.pub === pubName);
+    if (!pint) return;
+    currentPubData = pint;
+
+    const count = pubPintCounts[pubName] || 1;
+
+    // Background — Google Places pub photo if available, else dark bg
+    const bg = document.getElementById('pub-profile-bg');
+    if (pint.pub_place_photo) {
+      bg.style.backgroundImage = `url(${pint.pub_place_photo})`;
+    } else {
+      bg.style.backgroundImage = 'none';
+    }
+
+    document.getElementById('pub-profile-name').textContent = pubName;
+    document.getElementById('pub-profile-location').textContent =
+      [pint.pub_address||'', pint.county, pint.country].filter(Boolean).join(' · ');
+
+    document.getElementById('pp-pint-count').textContent =
+      `${count} pint${count !== 1 ? 's' : ''} verified here`;
+
+    // Stats
+    document.getElementById('pp-rating').textContent = pint.pub_rating || '—';
+    document.getElementById('pp-reviews').textContent =
+      pint.pub_total_ratings ? pint.pub_total_ratings.toLocaleString() : '—';
+
+    // Actions
+    document.getElementById('pp-maps-btn').href =
+      pint.google_maps_url || `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`;
+
+    const websiteBtn = document.getElementById('pp-website-btn');
+    if (pint.pub_website) {
+      websiteBtn.href = pint.pub_website;
+      try { websiteBtn.textContent = '🌐 ' + new URL(pint.pub_website).hostname.replace('www.',''); } catch {}
+      websiteBtn.style.display = 'block';
+    } else {
+      websiteBtn.style.display = 'none';
+    }
+
+    const phoneBtn = document.getElementById('pp-phone-btn');
+    if (pint.pub_phone) {
+      phoneBtn.href = `tel:${pint.pub_phone}`;
+      phoneBtn.textContent = `📞 ${pint.pub_phone}`;
+      phoneBtn.style.display = 'block';
+    } else {
+      phoneBtn.style.display = 'none';
+    }
+
+    // BaseScan — most recent tx for this pub
+    const basescanBtn = document.getElementById('pp-basescan-btn');
+    if (pint.tx_hash) {
+      basescanBtn.href = `https://basescan.org/tx/${pint.tx_hash}`;
+      basescanBtn.style.display = 'block';
+    } else {
+      basescanBtn.style.display = 'none';
+    }
+
+    document.getElementById('pub-profile').style.display = 'flex';
+  }
+
+  function closePubProfile() {
+    document.getElementById('pub-profile').style.display = 'none';
+    currentPubData = null;
+  }
+
+  function flyToPub() {
+    if (!currentPubData) return;
+    // Grab coordinates BEFORE closing the panel (which nulls currentPubData)
+    const lng = currentPubData.pub_lng;
+    const lat = currentPubData.pub_lat;
+    closePubProfile();
+    map.flyTo({
+      center: [lng, lat],
+      zoom: 16,
+      duration: 2500,
+      essential: true
+    });
+    isZoomed = true;
+    document.getElementById('zoom-back').style.display = 'block';
+  }
+
+  // ================================================================
+  // DATA
+  // ================================================================
+  async function loadData() {
+    try {
+      const [pintsRes, statsRes] = await Promise.all([fetch('/api/pints'), fetch('/api/stats')]);
+      const pintsJson  = await pintsRes.json();
+      const statsJson  = await statsRes.json();
+      pintsData       = pintsJson.pints        || [];
+      leaderboardData = pintsJson.leaderboards || {};
+
+      pubPintCounts = {};
+      pintsData.forEach(p => { pubPintCounts[p.pub] = (pubPintCounts[p.pub] || 0) + 1; });
+
+      // Pass all pints directly — Mapbox handles clustering natively
+      updatePinLayer(pintsData);
+
+      document.getElementById('stat-total').textContent     = (statsJson.total_pints    || 0).toLocaleString();
+      document.getElementById('stat-today').textContent     = (statsJson.today_pints    || 0).toLocaleString();
+      document.getElementById('stat-craic').textContent     = ((statsJson.total_craic   || 0) / 1000).toFixed(0) + 'K';
+      document.getElementById('stat-countries').textContent = statsJson.countries_count || 0;
+
+      renderLeaderboard();
+      renderFeed();
+    } catch(err) {
+      console.error('Data load error:', err);
+    } finally {
+      // Always hide loading screen regardless of data
+      const loading = document.getElementById('loading');
+      loading.style.opacity = '0';
+      setTimeout(() => loading.style.display = 'none', 500);
+    }
+  }
+
+  // Load pin images first, then data
+  function initPinsAndData() {
+    loadPinImages().then(() => {
+      setupLayers();
+      loadData();
+      setInterval(loadData, 30000);
+    });
+  }
+
+  if (map.isStyleLoaded()) {
+    initPinsAndData();
+  } else {
+    map.on('load', () => initPinsAndData());
+  }
+
+  // Safety net — force hide loading and init after 5s
+  setTimeout(() => {
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(() => loading.style.display = 'none', 500);
+    if (!pintsData.length) initPinsAndData();
+  }, 5000);
+
+  // ================================================================
+  // LEADERBOARD
+  // ================================================================
+  // All 32 Irish counties including Northern Ireland
+  const IRISH_COUNTIES = new Set([
+    'Antrim','Armagh','Carlow','Cavan','Clare','Cork','Derry','Donegal',
+    'Down','Dublin','Fermanagh','Galway','Kerry','Kildare','Kilkenny',
+    'Laois','Leitrim','Limerick','Longford','Louth','Mayo','Meath',
+    'Monaghan','Offaly','Roscommon','Sligo','Tipperary','Tyrone',
+    'Waterford','Westmeath','Wexford','Wicklow'
+  ]);
+
+  function renderLeaderboard() {
+    const list = document.getElementById('lb-list');
+    const hint = document.getElementById('lb-hint');
+    let data = leaderboardData[activeTab] || [];
+
+    // Filter counties tab to Irish counties only
+    if (activeTab === 'counties') {
+      data = data.filter(item => IRISH_COUNTIES.has(item.name));
+    }
+
+    hint.style.display = activeTab === 'countries' ? 'block' : 'none';
+    if (!data.length) {
+      list.innerHTML = '<div class="lb-item"><div class="lb-name" style="color:var(--text-muted);font-size:11px;">No data yet</div></div>';
       return;
     }
-    map.addSource('pints', { type:'geojson', data:{ type:'FeatureCollection', features }, cluster:true, clusterMaxZoom:10, clusterRadius:40 });
-    map.addLayer({ id:'clusters', type:'circle', source:'pints', filter:['has','point_count'], paint:{ 'circle-color':'#52C47C', 'circle-radius':['step',['get','point_count'],14,5,18,20,22], 'circle-opacity':0.9, 'circle-stroke-width':2, 'circle-stroke-color':'rgba(255,255,255,0.5)' } });
-    map.addLayer({ id:'cluster-count', type:'symbol', source:'pints', filter:['has','point_count'], layout:{ 'text-field':'{point_count_abbreviated}', 'text-size':12 }, paint:{ 'text-color':'#060a0f' } });
-    map.addLayer({ id:'pins', type:'symbol', source:'pints', filter:['!',['has','point_count']], layout:{ 'icon-image':'pin-green', 'icon-size':0.55, 'icon-allow-overlap':true, 'icon-anchor':'bottom' } });
+    const rows = data.slice(0, 8).map((item, i) => {
+      const canZoom = activeTab === 'countries' && COUNTRY_CENTRES[item.name];
+      const canProfile = activeTab === 'pubs';
+      let onclick = '';
+      if (canZoom) onclick = `onclick="zoomToCountry('${item.name}')"`;
+      if (canProfile) onclick = 'onclick="showPubProfile(decodeURIComponent(\'' + encodeURIComponent(item.name) + '\'))"';
+      return `<div class="lb-item" ${onclick}>
+        <div class="lb-rank">${i + 1}</div>
+        <div class="lb-name">${item.name}${canZoom ? ' 🔍' : ''}${canProfile ? ' →' : ''}</div>
+        <div class="lb-count">${(item.count || 0).toLocaleString()} 🍺</div>
+      </div>`;
+    }).join('');
+
+    // Add "Search all pubs" link for pubs tab
+    const searchLink = activeTab === 'pubs'
+      ? `<div class="lb-search-link" onclick="document.getElementById('pub-search-wrap').style.display='block';document.getElementById('pub-search-input').focus()">🔍 Search all ${(leaderboardData.pubs || []).length} verified pubs</div>`
+      : '';
+
+    list.innerHTML = rows + searchLink;
   }
 
-  // ── MAIN DATA LOAD ──
-  async function loadData(map) {
-    try {
-      const [pr, sr] = await Promise.all([fetch('/api/pints'), fetch('/api/stats')]);
-      const pj = await pr.json();
-      const sj = await sr.json();
+  function switchTab(tab, el) {
+    activeTab = tab;
+    document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    // Show/hide search box for pubs tab
+    document.getElementById('pub-search-wrap').style.display = tab === 'pubs' ? 'block' : 'none';
+    document.getElementById('pub-search-input').value = '';
+    renderLeaderboard();
+  }
 
-      const pints = pj.pints || [];
-      const total = sj.total_pints || pints.length || 0;
+  function searchPubs(query) {
+    const list = document.getElementById('lb-list');
+    const countEl = document.getElementById('pub-search-count');
+    query = query.trim().toLowerCase();
 
-      // Live count pill
-      const liveEl = document.getElementById('liveCount');
-      if (liveEl) liveEl.textContent = total.toLocaleString() + ' pints verified worldwide';
-
-      // Stats bar
-      document.getElementById('statTotal').textContent    = total.toLocaleString();
-      document.getElementById('statToday').textContent    = (sj.today_pints || 0).toLocaleString();
-      document.getElementById('statCraic').textContent    = ((sj.total_craic || total * 5000) / 1000).toFixed(0) + 'K';
-      document.getElementById('statCountries').textContent = (sj.countries_count || 0).toLocaleString();
-
-      // Leaderboards
-      leaderboardData = pj.leaderboards || {};
-      renderLeaderboard(currentTab);
-
-      // Feed
-      renderFeed(pints);
-
-      // Globe pins
-      if (map) {
-        const tryPins = () => loadPinImage(map).then(() => setupPins(map, pints));
-        if (map.isStyleLoaded()) tryPins(); else map.on('style.load', tryPins);
-      }
-
-    } catch (err) {
-      console.warn('Data load error:', err);
-      document.getElementById('liveCount').textContent = 'Pints verified worldwide';
+    if (!query) {
+      renderLeaderboard();
+      countEl.textContent = '';
+      return;
     }
+
+    // Search across all pints data — match pub name, county, country
+    const seen = new Set();
+    const matches = [];
+    pintsData.forEach(p => {
+      if (seen.has(p.pub)) return;
+      const searchStr = [p.pub, p.county, p.country, p.pub_address].join(' ').toLowerCase();
+      if (searchStr.includes(query)) {
+        seen.add(p.pub);
+        matches.push({ name: p.pub, count: pubPintCounts[p.pub] || 1, pint: p });
+      }
+    });
+
+    // Sort by pint count
+    matches.sort((a, b) => b.count - a.count);
+    countEl.textContent = `${matches.length} pub${matches.length !== 1 ? 's' : ''} found`;
+
+    if (!matches.length) {
+      list.innerHTML = '<div class="lb-item"><div class="lb-name" style="color:var(--text-muted);font-size:11px;">No pubs found</div></div>';
+      return;
+    }
+
+    list.innerHTML = matches.slice(0, 20).map((item, i) => {
+      const location = [item.pint.county, item.pint.country].filter(Boolean).join(', ');
+      const enc = encodeURIComponent(item.name);
+      return `<div class="lb-item" onclick="showPubProfile(decodeURIComponent('${enc}'))">
+        <div class="lb-rank">${i + 1}</div>
+        <div class="lb-name" style="flex:1;overflow:hidden">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+          <div style="font-size:9px;color:var(--text-muted);font-weight:400">${location}</div>
+        </div>
+        <div class="lb-count">${item.count} 🍺</div>
+      </div>`;
+    }).join('');
   }
 
-  // ── BOOT ──
-  (async () => {
-    const map = await initGlobe();
-    await loadData(map);
-    setInterval(() => loadData(map), 30000);
-  })();
-  </script>
+  // ================================================================
+  // LIVE FEED
+  // ================================================================
+  function renderFeed() {
+    const sorted = [...pintsData].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const items  = sorted.slice(0, 20);
+    if (!items.length) return;
+    const html = [...items, ...items].map(p => {
+      const time     = p.timestamp ? new Date(p.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+      const location = p.county ? `${p.county}, ${p.country}` : p.country || 'Somewhere ☘️';
+      return `<div class="feed-item"><strong>${p.pub}</strong> · ${location} · <span class="feed-craic">+5,000 $CRAIC</span> · ${time}</div>`;
+    }).join('');
+    document.getElementById('feed-inner').innerHTML = html;
+  }
+
+  // ================================================================
+  // PUB CARD
+  // ================================================================
+  function showPubCard(pint) {
+    const count = pubPintCounts[pint.pub] || 1;
+    document.getElementById('pc-name').textContent     = pint.pub;
+    document.getElementById('pc-location').textContent = [pint.pub_address||'', pint.county, pint.country].filter(Boolean).join(' · ');
+    const ratingEl = document.getElementById('pc-rating');
+    if (pint.pub_rating) {
+      ratingEl.innerHTML     = `<span class="stars">${'★'.repeat(Math.round(pint.pub_rating))}${'☆'.repeat(5-Math.round(pint.pub_rating))}</span> ${pint.pub_rating} (${(pint.pub_total_ratings||0).toLocaleString()} reviews)`;
+      ratingEl.style.display = 'flex';
+    } else ratingEl.style.display = 'none';
+    const phoneEl = document.getElementById('pc-phone');
+    if (pint.pub_phone) { phoneEl.innerHTML = `📞 <a href="tel:${pint.pub_phone}">${pint.pub_phone}</a>`; phoneEl.style.display = 'flex'; }
+    else phoneEl.style.display = 'none';
+    const websiteEl = document.getElementById('pc-website');
+    if (pint.pub_website) {
+      try { websiteEl.innerHTML = `🌐 <a href="${pint.pub_website}" target="_blank">${new URL(pint.pub_website).hostname.replace('www.','')}</a>`; websiteEl.style.display = 'flex'; }
+      catch { websiteEl.style.display = 'none'; }
+    } else websiteEl.style.display = 'none';
+    document.getElementById('pc-pints').innerHTML = `<span>${count}</span> pint${count!==1?'s':''} verified here ☘️`;
+    document.getElementById('pc-maps').href       = pint.google_maps_url || `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`;
+    document.getElementById('pub-card').style.display = 'block';
+  }
+  function closePubCard() { document.getElementById('pub-card').style.display = 'none'; }
+
+  // Close pub card when clicking map background
+  map.on('click', () => closePubCard());
+
+  // ================================================================
+  // BOTTOM SHEET
+  // ================================================================
+  function toggleSheet() {
+    sheetOpen = !sheetOpen;
+    document.getElementById('bottom-sheet').classList.toggle('open', sheetOpen);
+    document.getElementById('find-pub-btn').classList.toggle('sheet-open', sheetOpen);
+  }
+
+  // ================================================================
+  // FIND A PUB
+  // ================================================================
+  function openFindPub() {
+    document.getElementById('find-pub-panel').style.display = 'flex';
+    document.getElementById('panel-loading').style.display  = 'flex';
+    document.getElementById('panel-error').style.display    = 'none';
+    document.getElementById('pub-list').style.display       = 'none';
+    document.getElementById('panel-subtitle').textContent   = 'Searching near you...';
+    if (!navigator.geolocation) { showFindPubError('Geolocation not supported.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const res  = await fetch(`/api/find-pubs?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`);
+          const data = await res.json();
+          if (!data.pubs || !data.pubs.length) { showFindPubError('No Irish pubs found nearby. Try somewhere else! ☘️'); return; }
+          renderPubResults(data.pubs, data);
+        } catch { showFindPubError('Something went wrong. Please try again.'); }
+      },
+      () => showFindPubError('Location access denied. Please enable location and try again.'),
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  }
+  function closeFindPub() { document.getElementById('find-pub-panel').style.display = 'none'; }
+  function showFindPubError(msg) {
+    document.getElementById('panel-loading').style.display = 'none';
+    document.getElementById('pub-list').style.display      = 'none';
+    const el = document.getElementById('panel-error');
+    el.style.display = 'flex';
+    el.querySelector('p').textContent = msg;
+  }
+  function renderPubResults(pubs, data) {
+    document.getElementById('panel-loading').style.display = 'none';
+    document.getElementById('panel-error').style.display   = 'none';
+    const verified = pubs.filter(p => p.verified).length;
+    const note     = data.expanded ? ` · Searched up to ${data.search_radius}` : '';
+    document.getElementById('panel-subtitle').textContent  = `${pubs.length} Irish pubs found${note} · ${verified} $CRAIC verified`;
+    const list = document.getElementById('pub-list');
+    list.style.display = 'block';
+    list.innerHTML = pubs.map(pub => {
+      const stars = pub.rating ? '★'.repeat(Math.round(pub.rating))+'☆'.repeat(5-Math.round(pub.rating)) : null;
+      const open  = pub.open_now===true  ? '<span class="pub-result-open open">Open Now</span>'
+                  : pub.open_now===false ? '<span class="pub-result-open closed">Closed</span>' : '';
+      const badge = pub.verified ? `<div class="pub-verified-badge">☘️ $CRAIC Community Verified · ${pub.pint_count} pint${pub.pint_count!==1?'s':''}</div>` : '';
+      return `<div class="pub-result${pub.verified?' verified':''}">
+        <div class="pub-result-top"><div class="pub-result-name">${pub.name}</div><div class="pub-result-distance">${pub.distance}</div></div>
+        <div class="pub-result-address">${pub.address}</div>
+        <div class="pub-result-meta">${stars?`<span class="pub-result-rating">${stars} ${pub.rating}${pub.total_ratings?` (${pub.total_ratings.toLocaleString()})`:''}</span>`:''} ${open}</div>
+        ${badge}
+        <div class="pub-result-actions">
+          <a href="${pub.maps_url}" target="_blank" class="pub-directions-btn">📍 Get Directions</a>
+          <a href="https://proof-of-pint.vercel.app" target="_blank" class="pub-checkin-btn">🍺 Check In</a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+</script>
+})();
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
