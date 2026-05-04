@@ -337,7 +337,7 @@
   <div class="stat"><div class="stat-value" id="stat-craic">—</div><div class="stat-label">$CRAIC out</div></div>
   <div class="stat-divider"></div>
   <div class="stat"><div class="stat-value" id="stat-countries">—</div><div class="stat-label">Countries</div></div>
-  <a href="https://proof-of-pint.vercel.app" target="_blank" class="launch-btn">Open App ☘️</a>
+  <button onclick="window.open('https://proof-of-pint.vercel.app','_blank','noopener')" class="launch-btn">Open App ☘️</button>
 </div>
 
 <button id="zoom-back" onclick="zoomOut()">← Back to Globe</button>
@@ -407,7 +407,6 @@
   <div id="pub-profile-bg"></div>
   <div id="pub-profile-content">
     <div id="pub-profile-header">
-      <button id="pub-profile-back" onclick="closePubProfile()">← Back</button>
       <div id="pub-profile-title">☘️ $CRAIC Verified Pub</div>
     </div>
     <div id="pub-profile-body">
@@ -430,6 +429,7 @@
         <a id="pp-phone-btn" href="#" class="pp-btn pp-btn-secondary" style="display:none">📞 Call</a>
         <a id="pp-basescan-btn" href="#" target="_blank" class="pp-btn pp-btn-basescan">⛓️ View on BaseScan</a>
         <button id="pp-fly-btn" class="pp-btn pp-btn-fly" onclick="flyToPub()">📍 Take me there</button>
+        <button class="pp-btn pp-btn-secondary" onclick="closePubProfile()">← Back to Globe</button>
       </div>
     </div>
   </div>
@@ -990,7 +990,7 @@
     document.getElementById('panel-error').style.display    = 'none';
     document.getElementById('pub-list').style.display       = 'none';
     document.getElementById('panel-subtitle').textContent   = 'Searching near you...';
-    if (!navigator.geolocation) { showFindPubError('Geolocation not supported.'); return; }
+    if (!navigator.geolocation) { showFindPubError('Geolocation not supported on this device.'); return; }
     navigator.geolocation.getCurrentPosition(
       async pos => {
         try {
@@ -1000,8 +1000,16 @@
           renderPubResults(data.pubs, data);
         } catch { showFindPubError('Something went wrong. Please try again.'); }
       },
-      () => showFindPubError('Location access denied. Please enable location and try again.'),
-      { timeout: 10000, maximumAge: 60000 }
+      (err) => {
+        if (err.code === 1) {
+          showFindPubError('Location access denied. Please enable location in your browser settings and try again.');
+        } else if (err.code === 3) {
+          showFindPubError('Location request timed out. Please try again.');
+        } else {
+          showFindPubError('Could not get your location. Please try again.');
+        }
+      },
+      { timeout: 12000, maximumAge: 60000, enableHighAccuracy: false }
     );
   }
   function closeFindPub() { document.getElementById('find-pub-panel').style.display = 'none'; }
