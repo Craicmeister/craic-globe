@@ -5,7 +5,7 @@ export default function handler(req, res) {
   const mapboxToken = process.env.MAPBOX_TOKEN;
 
   if (!mapboxToken) {
-    return res.status(500).json({ error: 'Mapbox token not configured' });
+    return res.status(500).json({ error: 'MAPBOX_TOKEN env var not set' });
   }
 
   return res.status(200).json({ mapboxToken });
