@@ -436,11 +436,18 @@
 </div>
 
 <script>
-(async () => {
   // ================================================================
   // MAPBOX GLOBE
-  // Replaces Three.js entirely — correct coordinates guaranteed
   // ================================================================
+  // All globals declared at top so onclick handlers can reach them
+  let map;
+  let pintsData = [], leaderboardData = {}, activeTab = 'countries', pubPintCounts = {};
+  let sheetOpen = false;
+  let lastPintFeatures = [];
+  let isZoomed = false;
+  let currentPubData = null;
+
+  async function initApp() {
   // Fetch token securely from /api/config — never hardcoded
   const cfgRes = await fetch('/api/config');
   const cfg = await cfgRes.json();
@@ -492,10 +499,8 @@
     'Brazil':               { center: [-51.0, -14.0],  zoom: 3.8 },
   };
 
-  let pintsData = [], leaderboardData = {}, activeTab = 'countries', pubPintCounts = {};
-  let sheetOpen = false;
   // pins managed via GeoJSON source
-  let isZoomed = false;
+  // isZoomed, lastPintFeatures, currentPubData declared globally above
 
   // ================================================================
   // ZOOM TO COUNTRY — one line, always correct
@@ -588,8 +593,6 @@
   // Zoomed out: green cluster bubbles with count
   // Zoomed in: individual $CRAIC pins per pub
   // ================================================================
-  let lastPintFeatures = [];
-
   function setupLayers() {
     if (!map.getSource('pints')) {
       map.addSource('pints', {
@@ -681,8 +684,6 @@
   // ================================================================
   // PUB PROFILE PANEL
   // ================================================================
-  let currentPubData = null;
-
   function showPubProfile(pubName) {
     // Find the most recent pint for this pub
     const pint = pintsData.find(p => p.pub === pubName);
@@ -1036,7 +1037,9 @@
       </div>`;
     }).join('');
   }
-})();
+  } // end initApp
+
+  initApp();
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 </body>
