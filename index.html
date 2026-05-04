@@ -1037,6 +1037,19 @@
       </div>`;
     }).join('');
   }
+  // Expose onclick-referenced functions to global scope
+  window.toggleSheet    = toggleSheet;
+  window.switchTab      = switchTab;
+  window.zoomOut        = zoomOut;
+  window.zoomToCountry  = zoomToCountry;
+  window.closePubCard   = closePubCard;
+  window.openFindPub    = openFindPub;
+  window.closeFindPub   = closeFindPub;
+  window.showPubProfile = showPubProfile;
+  window.closePubProfile= closePubProfile;
+  window.flyToPub       = flyToPub;
+  window.searchPubs     = searchPubs;
+
   } // end initApp
 
   initApp();
