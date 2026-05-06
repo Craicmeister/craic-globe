@@ -685,8 +685,9 @@
 
     document.getElementById('pub-profile-name').textContent = pubName;
     document.getElementById('pub-profile-header-name').textContent = pubName;
+    const cleanAddr = (pint.pub_address||'').replace(new RegExp('^' + pubName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[,\\s]*','i'),'').trim();
     document.getElementById('pub-profile-location').textContent =
-      [pint.pub_address||'', pint.county, pint.country].filter(Boolean).join(' · ');
+      [cleanAddr, pint.county, pint.country].filter(Boolean).join(' · ');
 
     document.getElementById('pp-pint-count').textContent =
       `${count} pint${count !== 1 ? 's' : ''} verified here`;
@@ -953,7 +954,8 @@
   function showPubCard(pint) {
     const count = pubPintCounts[pint.pub] || 1;
     document.getElementById('pc-name').textContent     = pint.pub;
-    document.getElementById('pc-location').textContent = [pint.pub_address||'', pint.county, pint.country].filter(Boolean).join(' · ');
+    const pcAddr = (pint.pub_address||'').replace(new RegExp('^' + pint.pub.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '[,\\s]*','i'),'').trim();
+    document.getElementById('pc-location').textContent = [pcAddr, pint.county, pint.country].filter(Boolean).join(' · ');
     const ratingEl = document.getElementById('pc-rating');
     if (pint.pub_rating) {
       ratingEl.innerHTML     = `<span class="stars">${'★'.repeat(Math.round(pint.pub_rating))}${'☆'.repeat(5-Math.round(pint.pub_rating))}</span> ${pint.pub_rating} (${(pint.pub_total_ratings||0).toLocaleString()} reviews)`;
