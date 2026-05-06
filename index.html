@@ -99,7 +99,7 @@
     #sheet-content::-webkit-scrollbar { width: 3px; }
     #sheet-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     .lb-tabs { display: flex; border-bottom: 1px solid var(--border); }
-    .lb-tab { flex: 1; padding: 10px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-align: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: none; font-family: var(--font); }
+    .lb-tab { flex: 1; padding: 10px 2px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; text-align: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: none; font-family: var(--font); }
     .lb-tab.active { color: var(--green); background: rgba(82,196,124,0.08); }
     .lb-zoom-hint { font-size: 9px; color: var(--text-muted); padding: 6px 14px 2px; }
     .lb-list { padding: 6px 0; }
@@ -137,19 +137,7 @@
     }
     .lb-search-link:hover { color: var(--green); }
 
-    /* ---- FIND A PUB BUTTON ---- */
-    #find-pub-btn {
-      position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%);
-      padding: 11px 24px; background: var(--green); color: #060a0f;
-      font-family: var(--font); font-weight: 800; font-size: 13px;
-      border: none; border-radius: 30px; cursor: pointer; z-index: 250;
-      box-shadow: 0 4px 24px rgba(82,196,124,0.45);
-      display: flex; align-items: center; gap: 8px;
-      transition: opacity 0.2s, bottom 0.35s cubic-bezier(0.4,0,0.2,1);
-      white-space: nowrap;
-    }
-    #find-pub-btn:hover { opacity: 0.9; }
-    #find-pub-btn.sheet-open { bottom: calc(55vh + 56px); }
+
 
     /* ---- FIND A PUB PANEL ---- */
     #find-pub-panel {
@@ -217,7 +205,7 @@
       display: flex; flex-direction: column; height: 100%;
     }
     #pub-profile-header {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: flex-start; flex-direction: column; gap: 6px;
       padding: 52px 20px 16px;
       background: linear-gradient(to bottom, rgba(6,10,15,0.9) 0%, transparent 100%);
     }
@@ -227,6 +215,7 @@
       padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap;
     }
     #pub-profile-back:hover { background: rgba(82,196,124,0.15); }
+    #pub-profile-header-name { font-size: clamp(20px, 5vw, 30px); font-weight: 800; color: var(--text); line-height: 1.2; word-break: break-word; }
     #pub-profile-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
     #pub-profile-body {
       flex: 1; overflow-y: auto; padding: 20px;
@@ -287,15 +276,7 @@
         left: 10px; right: 10px; width: auto; top: 58px;
       }
 
-      /* Find a pub button — nudge up for Safari bottom bar */
-      #find-pub-btn {
-        bottom: 70px;
-        font-size: 12px;
-        padding: 10px 20px;
-      }
-      #find-pub-btn.sheet-open { bottom: calc(50vh + 70px); }
-
-      /* Bottom sheet — slightly shallower so handle is always visible */
+/* Bottom sheet — slightly shallower so handle is always visible */
       #sheet-content { max-height: 50vh; }
       #sheet-handle { padding: 0 14px; }
       #sheet-handle-label { font-size: 10px; }
@@ -354,7 +335,7 @@
   <a id="pc-maps" href="#" target="_blank" class="pub-card-maps">📍 Open in Google Maps</a>
 </div>
 
-<button id="find-pub-btn" onclick="openFindPub()">🍺 Find an Irish Pub</button>
+
 
 <div id="bottom-sheet">
   <div id="sheet-handle" onclick="toggleSheet()">
@@ -369,6 +350,7 @@
       <button class="lb-tab active" onclick="switchTab('countries', this)">🌍 Countries</button>
       <button class="lb-tab" onclick="switchTab('counties', this)">📍 Irish Counties</button>
       <button class="lb-tab" onclick="switchTab('pubs', this)">🍺 Pubs</button>
+      <button class="lb-tab" onclick="switchTab('users', this)">👤 Users</button>
     </div>
     <div class="lb-zoom-hint" id="lb-hint">Tap a country to zoom in ☘️</div>
     <div id="pub-search-wrap">
@@ -408,6 +390,7 @@
   <div id="pub-profile-content">
     <div id="pub-profile-header">
       <div id="pub-profile-title">☘️ $CRAIC Verified Pub</div>
+      <div id="pub-profile-header-name"></div>
     </div>
     <div id="pub-profile-body">
       <div id="pub-profile-name"></div>
@@ -701,6 +684,7 @@
     }
 
     document.getElementById('pub-profile-name').textContent = pubName;
+    document.getElementById('pub-profile-header-name').textContent = pubName;
     document.getElementById('pub-profile-location').textContent =
       [pint.pub_address||'', pint.county, pint.country].filter(Boolean).join(' · ');
 
@@ -781,6 +765,18 @@
       pubPintCounts = {};
       pintsData.forEach(p => { pubPintCounts[p.pub] = (pubPintCounts[p.pub] || 0) + 1; });
 
+      // Build users leaderboard client-side if not provided by API
+      if (!leaderboardData.users || !leaderboardData.users.length) {
+        const userCounts = {};
+        pintsData.forEach(p => {
+          const user = p.farcaster_username || p.username || p.user;
+          if (user) userCounts[user] = (userCounts[user] || 0) + 1;
+        });
+        leaderboardData.users = Object.entries(userCounts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count);
+      }
+
       // Pass all pints directly — Mapbox handles clustering natively
       updatePinLayer(pintsData);
 
@@ -854,13 +850,21 @@
     const rows = data.slice(0, 8).map((item, i) => {
       const canZoom = activeTab === 'countries' && COUNTRY_CENTRES[item.name];
       const canProfile = activeTab === 'pubs';
+      const isUsers = activeTab === 'users';
       let onclick = '';
       if (canZoom) onclick = `onclick="zoomToCountry('${item.name}')"`;
       if (canProfile) onclick = 'onclick="showPubProfile(decodeURIComponent(\'' + encodeURIComponent(item.name) + '\'))"';
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+      const nameDisplay = isUsers
+        ? `${medal ? medal + ' ' : ''}${item.name}`
+        : `${item.name}${canZoom ? ' 🔍' : ''}${canProfile ? ' →' : ''}`;
+      const countDisplay = isUsers
+        ? `${(item.count || 0).toLocaleString()} 🍺`
+        : `${(item.count || 0).toLocaleString()} 🍺`;
       return `<div class="lb-item" ${onclick}>
-        <div class="lb-rank">${i + 1}</div>
-        <div class="lb-name">${item.name}${canZoom ? ' 🔍' : ''}${canProfile ? ' →' : ''}</div>
-        <div class="lb-count">${(item.count || 0).toLocaleString()} 🍺</div>
+        <div class="lb-rank">${isUsers && medal ? '' : i + 1}</div>
+        <div class="lb-name">${nameDisplay}</div>
+        <div class="lb-count">${countDisplay}</div>
       </div>`;
     }).join('');
 
@@ -876,7 +880,7 @@
     activeTab = tab;
     document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-    // Show/hide search box for pubs tab
+    // Show/hide search box for pubs tab only
     document.getElementById('pub-search-wrap').style.display = tab === 'pubs' ? 'block' : 'none';
     document.getElementById('pub-search-input').value = '';
     renderLeaderboard();
@@ -978,7 +982,6 @@
   function toggleSheet() {
     sheetOpen = !sheetOpen;
     document.getElementById('bottom-sheet').classList.toggle('open', sheetOpen);
-    document.getElementById('find-pub-btn').classList.toggle('sheet-open', sheetOpen);
   }
 
   // ================================================================
