@@ -836,7 +836,7 @@
   function renderLeaderboard() {
     const list = document.getElementById('lb-list');
     const hint = document.getElementById('lb-hint');
-    let data = leaderboardData[activeTab] || [];
+    let data = [...(leaderboardData[activeTab] || [])].sort((a, b) => (b.count || 0) - (a.count || 0));
 
     // Filter counties tab to Irish counties only
     if (activeTab === 'counties') {
