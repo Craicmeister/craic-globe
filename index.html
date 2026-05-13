@@ -205,9 +205,9 @@
       display: flex; flex-direction: column; height: 100%;
     }
     #pub-profile-header {
-      display: flex; align-items: flex-start; flex-direction: column; gap: 6px;
-      padding: 16px 20px 16px;
-      background: linear-gradient(to bottom, rgba(6,10,15,0.85) 0%, transparent 100%);
+      display: flex; align-items: flex-start; flex-direction: column; gap: 4px;
+      padding: 48px 20px 16px;
+      background: linear-gradient(to bottom, rgba(6,10,15,0.92) 0%, transparent 100%);
     }
     #pub-profile-back {
       background: rgba(13,21,32,0.8); border: 1px solid var(--border);
@@ -390,9 +390,9 @@
   <div id="pub-profile-content">
     <div id="pub-profile-header">
       <div id="pub-profile-title">☘️ $CRAIC Verified Pub</div>
+      <div id="pub-profile-name"></div>
     </div>
     <div id="pub-profile-body">
-      <div id="pub-profile-name"></div>
       <div id="pub-profile-location"></div>
       <div id="pub-profile-badge">☘️ <span id="pp-pint-count"></span></div>
       <div id="pub-profile-stats">
@@ -684,8 +684,9 @@
 
     document.getElementById('pub-profile-name').textContent = pubName;
     const cleanAddr = (pint.pub_address || '').trim();
-    document.getElementById('pub-profile-location').textContent =
-      [cleanAddr, pint.county, pint.country].filter(Boolean).join(' · ');
+    document.getElementById('pub-profile-location').textContent = cleanAddr
+      ? cleanAddr
+      : [pint.county, pint.country].filter(Boolean).join(', ');
 
     document.getElementById('pp-pint-count').textContent =
       `${count} pint${count !== 1 ? 's' : ''} verified here`;
