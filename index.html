@@ -683,6 +683,8 @@
     }
 
     document.getElementById('pub-profile-name').textContent = pubName;
+
+    // Address: use pub_address, fall back to county + country
     const cleanAddr = (pint.pub_address || '').trim();
     document.getElementById('pub-profile-location').textContent = cleanAddr
       ? cleanAddr
@@ -691,19 +693,21 @@
     document.getElementById('pp-pint-count').textContent =
       `${count} pint${count !== 1 ? 's' : ''} verified here`;
 
-    // Stats
+    // Stats — show dashes if missing
     document.getElementById('pp-rating').textContent = pint.pub_rating || '—';
     document.getElementById('pp-reviews').textContent =
       pint.pub_total_ratings ? pint.pub_total_ratings.toLocaleString() : '—';
 
     // Actions
     document.getElementById('pp-maps-btn').href =
-      pint.google_maps_url || `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`;
+      pint.google_maps_url || (pint.pub_lat && pint.pub_lng
+        ? `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`
+        : `https://www.google.com/maps/search/${encodeURIComponent(pubName)}`);
 
     const websiteBtn = document.getElementById('pp-website-btn');
     if (pint.pub_website) {
       websiteBtn.href = pint.pub_website;
-      try { websiteBtn.textContent = '🌐 ' + new URL(pint.pub_website).hostname.replace('www.',''); } catch {}
+      try { websiteBtn.textContent = '🌐 ' + new URL(pint.pub_website).hostname.replace('www.',''); } catch { websiteBtn.textContent = '🌐 Website'; }
       websiteBtn.style.display = 'block';
     } else {
       websiteBtn.style.display = 'none';
@@ -769,7 +773,7 @@
       if (!leaderboardData.users || !leaderboardData.users.length) {
         const userCounts = {};
         pintsData.forEach(p => {
-          const user = p.farcaster_username || p.username || p.user;
+          const user = p.display_name || p.farcaster_username || p.username || p.user;
           if (user) userCounts[user] = (userCounts[user] || 0) + 1;
         });
         leaderboardData.users = Object.entries(userCounts)
