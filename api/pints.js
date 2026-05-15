@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     countriesSnap.forEach(doc => leaderboards.countries.push({ name: doc.id, ...doc.data() }));
     pubsSnap.forEach(doc      => leaderboards.pubs.push({ name: doc.id, ...doc.data() }));
     // FIX: was leaderboards.players — now leaderboards.users
-    playersSnap.forEach(doc   => leaderboards.users.push({ name: doc.id, ...doc.data() }));
+    playersSnap.forEach(doc   => leaderboards.users.push({ name: doc.data().display_name || doc.id, ...doc.data() }));
 
     return res.status(200).json({
       pints,
