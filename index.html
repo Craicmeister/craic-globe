@@ -683,8 +683,6 @@
     }
 
     document.getElementById('pub-profile-name').textContent = pubName;
-
-    // Address: use pub_address, fall back to county + country
     const cleanAddr = (pint.pub_address || '').trim();
     document.getElementById('pub-profile-location').textContent = cleanAddr
       ? cleanAddr
@@ -693,21 +691,19 @@
     document.getElementById('pp-pint-count').textContent =
       `${count} pint${count !== 1 ? 's' : ''} verified here`;
 
-    // Stats — show dashes if missing
+    // Stats
     document.getElementById('pp-rating').textContent = pint.pub_rating || '—';
     document.getElementById('pp-reviews').textContent =
       pint.pub_total_ratings ? pint.pub_total_ratings.toLocaleString() : '—';
 
     // Actions
     document.getElementById('pp-maps-btn').href =
-      pint.google_maps_url || (pint.pub_lat && pint.pub_lng
-        ? `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`
-        : `https://www.google.com/maps/search/${encodeURIComponent(pubName)}`);
+      pint.google_maps_url || `https://www.google.com/maps?q=${pint.pub_lat},${pint.pub_lng}`;
 
     const websiteBtn = document.getElementById('pp-website-btn');
     if (pint.pub_website) {
       websiteBtn.href = pint.pub_website;
-      try { websiteBtn.textContent = '🌐 ' + new URL(pint.pub_website).hostname.replace('www.',''); } catch { websiteBtn.textContent = '🌐 Website'; }
+      try { websiteBtn.textContent = '🌐 ' + new URL(pint.pub_website).hostname.replace('www.',''); } catch {}
       websiteBtn.style.display = 'block';
     } else {
       websiteBtn.style.display = 'none';
@@ -856,8 +852,9 @@
       const canProfile = activeTab === 'pubs';
       const isUsers = activeTab === 'users';
       let onclick = '';
+      let dataPub = '';
       if (canZoom) onclick = `onclick="zoomToCountry('${item.name}')"`;
-      if (canProfile) onclick = 'onclick="showPubProfile(decodeURIComponent(\'' + encodeURIComponent(item.name) + '\'))"';
+      if (canProfile) dataPub = `data-pub="${item.name.replace(/"/g, '&quot;')}" style="cursor:pointer"`;
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
       const nameDisplay = isUsers
         ? `${medal ? medal + ' ' : ''}${item.name}`
@@ -865,7 +862,7 @@
       const countDisplay = isUsers
         ? `${(item.count || 0).toLocaleString()} 🍺`
         : `${(item.count || 0).toLocaleString()} 🍺`;
-      return `<div class="lb-item" ${onclick}>
+      return `<div class="lb-item" ${onclick} ${dataPub}>
         <div class="lb-rank">${isUsers && medal ? '' : i + 1}</div>
         <div class="lb-name">${nameDisplay}</div>
         <div class="lb-count">${countDisplay}</div>
@@ -924,8 +921,7 @@
 
     list.innerHTML = matches.slice(0, 20).map((item, i) => {
       const location = [item.pint.county, item.pint.country].filter(Boolean).join(', ');
-      const enc = encodeURIComponent(item.name);
-      return `<div class="lb-item" onclick="showPubProfile(decodeURIComponent('${enc}'))">
+      return `<div class="lb-item" data-pub="${item.name.replace(/"/g, '&quot;')}" style="cursor:pointer">
         <div class="lb-rank">${i + 1}</div>
         <div class="lb-name" style="flex:1;overflow:hidden">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
@@ -1062,6 +1058,12 @@
   window.openFindPub    = openFindPub;
   window.closeFindPub   = closeFindPub;
   window.showPubProfile = showPubProfile;
+
+  // Delegated listener — handles apostrophes and special chars in pub names safely
+  document.getElementById('lb-list').addEventListener('click', function(e) {
+    const item = e.target.closest('[data-pub]');
+    if (item) showPubProfile(item.getAttribute('data-pub'));
+  });
   window.closePubProfile= closePubProfile;
   window.flyToPub       = flyToPub;
   window.searchPubs     = searchPubs;
