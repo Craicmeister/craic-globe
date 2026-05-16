@@ -774,15 +774,18 @@
       pubPintCounts = {};
       pintsData.forEach(p => { pubPintCounts[p.pub] = (pubPintCounts[p.pub] || 0) + 1; });
 
-      // Build regulars leaderboard client-side — deduplicate strictly by display_name
+      // Build regulars leaderboard — deduplicate strictly by display_name
+      // API returns this as leaderboardData.users; we use that as the base
+      // then re-aggregate from pintsData to ensure deduplication by display_name only
       const userCounts = {};
       pintsData.forEach(p => {
         const name = p.display_name;
         if (name) userCounts[name] = (userCounts[name] || 0) + 1;
       });
-      leaderboardData.regulars = Object.entries(userCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count);
+      // Fall back to API-provided users list if no display_name fields present
+      leaderboardData.regulars = Object.keys(userCounts).length
+        ? Object.entries(userCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+        : (leaderboardData.users || []);
 
       // Pass all pints directly — Mapbox handles clustering natively
       updatePinLayer(pintsData);
