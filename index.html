@@ -350,7 +350,7 @@
       <button class="lb-tab active" onclick="switchTab('countries', this)">🌍 Countries</button>
       <button class="lb-tab" onclick="switchTab('counties', this)">📍 Irish Counties</button>
       <button class="lb-tab" onclick="switchTab('pubs', this)">🍺 Pubs</button>
-      <button class="lb-tab" onclick="switchTab('users', this)">👤 Users</button>
+      <button class="lb-tab" onclick="switchTab('regulars', this)">🍺 Regulars</button>
     </div>
     <div class="lb-zoom-hint" id="lb-hint">Tap a country to zoom in ☘️</div>
     <div id="pub-search-wrap">
@@ -650,13 +650,22 @@
   });
 
   function updatePinLayer(pints) {
-    lastPintFeatures = pints
-      .filter(p => p.pub_lat && p.pub_lng)
-      .map(p => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [p.pub_lng, p.pub_lat] },
-        properties: { pub: p.pub, pintData: JSON.stringify(p) }
-      }));
+    // Aggregate by pub — one pin per pub with correct total count
+    const pubMap = {};
+    pints.filter(p => p.pub_lat && p.pub_lng).forEach(p => {
+      if (!pubMap[p.pub]) {
+        pubMap[p.pub] = { ...p, _count: 1 };
+      } else {
+        pubMap[p.pub]._count++;
+      }
+    });
+
+    lastPintFeatures = Object.values(pubMap).map(p => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [p.pub_lng, p.pub_lat] },
+      properties: { pub: p.pub, pintData: JSON.stringify(p), count: p._count }
+    }));
+
     setupLayers();
     if (map.getSource('pints')) {
       map.getSource('pints').setData({ type: 'FeatureCollection', features: lastPintFeatures });
@@ -765,17 +774,15 @@
       pubPintCounts = {};
       pintsData.forEach(p => { pubPintCounts[p.pub] = (pubPintCounts[p.pub] || 0) + 1; });
 
-      // Build users leaderboard client-side if not provided by API
-      if (!leaderboardData.users || !leaderboardData.users.length) {
-        const userCounts = {};
-        pintsData.forEach(p => {
-          const user = p.display_name || p.farcaster_username || p.username || p.user;
-          if (user) userCounts[user] = (userCounts[user] || 0) + 1;
-        });
-        leaderboardData.users = Object.entries(userCounts)
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count);
-      }
+      // Build regulars leaderboard client-side — deduplicate strictly by display_name
+      const userCounts = {};
+      pintsData.forEach(p => {
+        const name = p.display_name;
+        if (name) userCounts[name] = (userCounts[name] || 0) + 1;
+      });
+      leaderboardData.regulars = Object.entries(userCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
 
       // Pass all pints directly — Mapbox handles clustering natively
       updatePinLayer(pintsData);
@@ -850,20 +857,18 @@
     const rows = data.slice(0, 8).map((item, i) => {
       const canZoom = activeTab === 'countries' && COUNTRY_CENTRES[item.name];
       const canProfile = activeTab === 'pubs';
-      const isUsers = activeTab === 'users';
+      const isRegulars = activeTab === 'regulars';
       let onclick = '';
       let dataPub = '';
       if (canZoom) onclick = `onclick="zoomToCountry('${item.name}')"`;
       if (canProfile) dataPub = `data-pub="${item.name.replace(/"/g, '&quot;')}" style="cursor:pointer"`;
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
-      const nameDisplay = isUsers
+      const nameDisplay = isRegulars
         ? `${medal ? medal + ' ' : ''}${item.name}`
         : `${item.name}${canZoom ? ' 🔍' : ''}${canProfile ? ' →' : ''}`;
-      const countDisplay = isUsers
-        ? `${(item.count || 0).toLocaleString()} 🍺`
-        : `${(item.count || 0).toLocaleString()} 🍺`;
+      const countDisplay = `${(item.count || 0).toLocaleString()} 🍺`;
       return `<div class="lb-item" ${onclick} ${dataPub}>
-        <div class="lb-rank">${isUsers && medal ? '' : i + 1}</div>
+        <div class="lb-rank">${isRegulars && medal ? '' : i + 1}</div>
         <div class="lb-name">${nameDisplay}</div>
         <div class="lb-count">${countDisplay}</div>
       </div>`;
@@ -881,7 +886,6 @@
     activeTab = tab;
     document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
-    // Show/hide search box for pubs tab only
     document.getElementById('pub-search-wrap').style.display = tab === 'pubs' ? 'block' : 'none';
     document.getElementById('pub-search-input').value = '';
     renderLeaderboard();
