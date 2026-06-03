@@ -41,7 +41,7 @@
     .stat-value { font-size: clamp(11px, 3vw, 14px); font-weight: 700; color: var(--green); font-family: var(--mono); }
     .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .stat-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-    .launch-btn { margin-left: auto; padding: clamp(5px, 1.5vw, 7px) clamp(10px, 2.5vw, 14px); background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: clamp(10px, 2.5vw, 12px); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; }
+    .launch-btn { margin-left: auto; padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 14px); background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: clamp(10px, 2.5vw, 12px); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; overflow: hidden; max-width: 80px; }
     .launch-btn:hover { opacity: 0.85; }
 
     /* ---- ZOOM BACK ---- */
@@ -255,7 +255,7 @@
     .pp-btn-fly { background: rgba(82,196,124,0.1); color: var(--green); border: 1px solid rgba(82,196,124,0.3); }
 
     /* ---- MOBILE RESPONSIVE FIXES ---- */
-    @media (max-width: 600px) {
+    @media (max-width: 480px) {
 
       /* Stats bar — tighten spacing, hide least critical stats */
       #stats-bar { padding: 0 10px; gap: 8px; height: 48px; }
