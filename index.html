@@ -788,8 +788,6 @@
 
       document.getElementById('stat-total').textContent     = (statsJson.total_pints    || 0).toLocaleString();
       document.getElementById('stat-today').textContent     = (statsJson.today_pints    || 0).toLocaleString();
-      document.getElementById('stat-craic').textContent     = ((statsJson.total_craic   || 0) / 1000).toFixed(0) + 'K';
-      document.getElementById('stat-countries').textContent = statsJson.countries_count || 0;
 
       renderLeaderboard();
       renderFeed();
