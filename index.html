@@ -41,7 +41,7 @@
     .stat-value { font-size: clamp(11px, 3vw, 14px); font-weight: 700; color: var(--green); font-family: var(--mono); }
     .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .stat-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-    .launch-btn { margin-left: auto; padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 14px); background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: clamp(10px, 2.5vw, 12px); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; overflow: hidden; max-width: 80px; }
+    .launch-btn { margin-left: auto; padding: clamp(5px, 1.5vw, 7px) clamp(10px, 2.5vw, 14px); background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: clamp(10px, 2.5vw, 12px); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; }
     .launch-btn:hover { opacity: 0.85; }
 
     /* ---- ZOOM BACK ---- */
@@ -314,10 +314,6 @@
   <div class="stat"><div class="stat-value" id="stat-total">—</div><div class="stat-label">Pints</div></div>
   <div class="stat-divider"></div>
   <div class="stat"><div class="stat-value" id="stat-today">—</div><div class="stat-label">Today</div></div>
-  <div class="stat-divider"></div>
-  <div class="stat"><div class="stat-value" id="stat-craic">—</div><div class="stat-label">$CRAIC out</div></div>
-  <div class="stat-divider"></div>
-  <div class="stat"><div class="stat-value" id="stat-countries">—</div><div class="stat-label">Countries</div></div>
   <button onclick="window.open('https://proof-of-pint.vercel.app','_blank','noopener')" class="launch-btn">Open App ☘️</button>
 </div>
 
