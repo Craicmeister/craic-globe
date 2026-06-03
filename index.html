@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>$CRAIC — Proof of Pint Live Map</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -31,17 +31,17 @@
       position: fixed; top: 0; left: 0; right: 0; height: 52px;
       background: rgba(6,10,15,0.85); backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; padding: 0 16px; gap: 16px; z-index: 100;
+      display: flex; align-items: center; padding: 0 10px; gap: 10px; z-index: 100;
       overflow-x: auto; overflow-y: hidden;
     }
     #stats-bar::-webkit-scrollbar { display: none; }
-    .logo { font-size: 16px; font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-    .logo img { width: 24px; height: 24px; border-radius: 50%; }
+    .logo { font-size: clamp(13px, 3.5vw, 16px); font-weight: 800; color: var(--green); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .logo img { width: 22px; height: 22px; border-radius: 50%; }
     .stat { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
-    .stat-value { font-size: 14px; font-weight: 700; color: var(--green); font-family: var(--mono); }
+    .stat-value { font-size: clamp(11px, 3vw, 14px); font-weight: 700; color: var(--green); font-family: var(--mono); }
     .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .stat-divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
-    .launch-btn { margin-left: auto; padding: 7px 14px; background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; }
+    .launch-btn { margin-left: auto; padding: clamp(5px, 1.5vw, 7px) clamp(10px, 2.5vw, 14px); background: var(--green); color: #060a0f; font-family: var(--font); font-weight: 700; font-size: clamp(10px, 2.5vw, 12px); border: none; border-radius: 6px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: opacity 0.2s; flex-shrink: 0; }
     .launch-btn:hover { opacity: 0.85; }
 
     /* ---- ZOOM BACK ---- */
