@@ -851,7 +851,8 @@
       list.innerHTML = '<div class="lb-item"><div class="lb-name" style="color:var(--text-muted);font-size:11px;">No data yet</div></div>';
       return;
     }
-    const rows = data.slice(0, 8).map((item, i) => {
+    const limit = activeTab === 'pubs' ? data.length : 8;
+    const rows = data.slice(0, limit).map((item, i) => {
       const canZoom = activeTab === 'countries' && COUNTRY_CENTRES[item.name];
       const canProfile = activeTab === 'pubs';
       const isRegulars = activeTab === 'regulars';
